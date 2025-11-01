@@ -257,6 +257,9 @@ export type Database = {
           google_id: string
           id: string
           name: string | null
+          provider_refresh_token: string | null
+          provider_token: string | null
+          provider_token_expires_at: string | null
           updated_at: string | null
           youtube_channel_id: string | null
         }
@@ -267,6 +270,9 @@ export type Database = {
           google_id: string
           id?: string
           name?: string | null
+          provider_refresh_token?: string | null
+          provider_token?: string | null
+          provider_token_expires_at?: string | null
           updated_at?: string | null
           youtube_channel_id?: string | null
         }
@@ -277,6 +283,9 @@ export type Database = {
           google_id?: string
           id?: string
           name?: string | null
+          provider_refresh_token?: string | null
+          provider_token?: string | null
+          provider_token_expires_at?: string | null
           updated_at?: string | null
           youtube_channel_id?: string | null
         }

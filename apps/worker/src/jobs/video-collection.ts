@@ -1,7 +1,10 @@
 import { Job } from 'bullmq';
 import { YouTubeAPI } from '@tubebrew/youtube';
-import { DBUtils } from '@tubebrew/db';
+import { DBUtils, supabaseAdmin } from '@tubebrew/db';
 import type { VideoProcessingJob } from '@tubebrew/types';
+
+// Use admin client to bypass RLS
+const db = new DBUtils(supabaseAdmin);
 
 /**
  * Video Collection Job Handler
@@ -14,20 +17,20 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
 
   try {
     // 1. Get user's provider token for YouTube API
-    const user = await DBUtils.getUser(userId);
+    const user = await db.getUser(userId);
     if (!user || !user.provider_token) {
       throw new Error('User not found or provider token missing');
     }
 
-    // 2. Initialize YouTube API with user's token
-    const youtube = new YouTubeAPI(user.provider_token);
+    // 2. Initialize YouTube API with user's OAuth token (second parameter)
+    const youtube = new YouTubeAPI(undefined, user.provider_token);
 
     // 3. Fetch recent videos from channel via RSS (quota-free)
-    const videos = await youtube.getChannelVideosViaRSS(channelId);
-    job.log(`Found ${videos.length} videos from RSS feed`);
+    const rssVideos = await youtube.getChannelVideosViaRSS(channelId);
+    job.log(`Found ${rssVideos.length} videos from RSS feed`);
 
     // 4. Get channel details to ensure it exists in DB
-    const channel = await DBUtils.getChannelByYouTubeId(channelId);
+    const channel = await db.getChannelByYouTubeId(channelId);
     if (!channel) {
       job.log(`Channel ${channelId} not found in database, skipping`);
       return { success: true, videosProcessed: 0, skipped: true };
@@ -37,29 +40,37 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
     let updatedVideos = 0;
 
     // 5. Process each video
-    for (const video of videos) {
+    for (const rssVideo of rssVideos) {
       try {
+        const videoId = rssVideo.videoId;
+
         // Check if video already exists
-        const existing = await DBUtils.getVideoByYouTubeId(video.id);
+        const existing = await db.getVideoByYouTubeId(videoId);
 
         if (existing) {
-          // Update video metadata if needed
-          await DBUtils.updateVideo(existing.id, {
-            view_count: video.viewCount,
+          // Fetch latest video details to update metadata
+          const videoDetails = await youtube.getVideoDetails(videoId);
+
+          await db.updateVideo(existing.id, {
+            view_count: videoDetails.viewCount,
             updated_at: new Date(),
           });
           updatedVideos++;
         } else {
+          // Fetch full video details for new videos
+          const videoDetails = await youtube.getVideoDetails(videoId);
+          const duration = YouTubeAPI.parseDuration(videoDetails.duration);
+
           // Create new video record
-          await DBUtils.createVideo({
-            youtube_id: video.id,
+          await db.createVideo({
+            youtube_id: videoId,
             channel_id: channel.id,
-            title: video.title,
-            description: video.description || '',
-            thumbnail_url: video.thumbnail,
-            published_at: video.publishedAt,
-            duration: video.duration || 0,
-            view_count: video.viewCount || 0,
+            title: videoDetails.title,
+            description: videoDetails.description || '',
+            thumbnail_url: videoDetails.thumbnail,
+            published_at: new Date(videoDetails.publishedAt),
+            duration,
+            view_count: videoDetails.viewCount || 0,
           });
           newVideos++;
 
@@ -67,7 +78,7 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
           await job.queue.add(
             'summary-generation',
             {
-              videoId: video.id,
+              videoId,
               channelId,
               userId,
               priority: 'normal',
@@ -82,7 +93,7 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
           );
         }
       } catch (err) {
-        job.log(`Error processing video ${video.id}: ${(err as Error).message}`);
+        job.log(`Error processing video ${rssVideo.videoId}: ${(err as Error).message}`);
         // Continue with next video
       }
     }
@@ -91,7 +102,7 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
 
     return {
       success: true,
-      videosProcessed: videos.length,
+      videosProcessed: rssVideos.length,
       newVideos,
       updatedVideos,
     };

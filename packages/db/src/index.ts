@@ -28,6 +28,7 @@ export class DBUtils {
    */
   async getUser(userId: string) {
     const { data, error } = await this.client
+      .schema('public')
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -46,6 +47,7 @@ export class DBUtils {
   async getOrCreateUser(googleId: string, email: string, name?: string, avatarUrl?: string) {
     // Check if user exists
     const { data: existingUser, error: fetchError } = await this.client
+      .schema('public')
       .from('users')
       .select('*')
       .eq('google_id', googleId)
@@ -57,6 +59,7 @@ export class DBUtils {
 
     // Create new user
     const { data: newUser, error: createError } = await this.client
+      .schema('public')
       .from('users')
       .insert({
         google_id: googleId,
@@ -73,7 +76,7 @@ export class DBUtils {
 
     // Create default user settings
     if (newUser) {
-      await this.client.from('user_settings').insert({
+      await this.client.schema('public').from('user_settings').insert({
         user_id: newUser.id,
         summary_level: 2,
         notification_type: 'daily',
@@ -90,6 +93,7 @@ export class DBUtils {
    */
   async getChannelByYouTubeId(youtubeId: string) {
     const { data, error } = await this.client
+      .schema('public')
       .from('channels')
       .select('*')
       .eq('youtube_id', youtubeId)
@@ -107,6 +111,7 @@ export class DBUtils {
    */
   async getVideoByYouTubeId(youtubeId: string) {
     const { data, error } = await this.client
+      .schema('public')
       .from('videos')
       .select('*')
       .eq('youtube_id', youtubeId)
@@ -124,6 +129,7 @@ export class DBUtils {
    */
   async createVideo(video: Database['public']['Tables']['videos']['Insert']) {
     const { data, error } = await this.client
+      .schema('public')
       .from('videos')
       .insert(video)
       .select()
@@ -141,6 +147,7 @@ export class DBUtils {
    */
   async updateVideo(videoId: string, updates: Database['public']['Tables']['videos']['Update']) {
     const { data, error } = await this.client
+      .schema('public')
       .from('videos')
       .update(updates)
       .eq('id', videoId)
@@ -159,6 +166,7 @@ export class DBUtils {
    */
   async getUserChannels(userId: string) {
     const { data, error } = await this.client
+      .schema('public')
       .from('user_channels')
       .select(`
         *,
@@ -180,6 +188,7 @@ export class DBUtils {
   async getRecentVideos(userId: string, limit: number = 50) {
     // First, get the list of channel IDs the user is subscribed to
     const { data: userChannels, error: channelError } = await this.client
+      .schema('public')
       .from('user_channels')
       .select('channel_id')
       .eq('user_id', userId)
@@ -198,6 +207,7 @@ export class DBUtils {
 
     // Get videos from those channels
     const { data, error } = await this.client
+      .schema('public')
       .from('videos')
       .select(`
         *,
@@ -220,6 +230,7 @@ export class DBUtils {
    */
   async getVideoWithSummaries(videoId: string) {
     const { data, error } = await this.client
+      .schema('public')
       .from('videos')
       .select(`
         *,
@@ -242,6 +253,7 @@ export class DBUtils {
    */
   async addBookmark(userId: string, videoId: string, priority: number = 1) {
     const { data, error } = await this.client
+      .schema('public')
       .from('bookmarks')
       .insert({
         user_id: userId,
@@ -263,6 +275,7 @@ export class DBUtils {
    */
   async removeBookmark(userId: string, videoId: string) {
     const { error } = await this.client
+      .schema('public')
       .from('bookmarks')
       .delete()
       .eq('user_id', userId)
@@ -278,6 +291,7 @@ export class DBUtils {
    */
   async getUserBookmarks(userId: string) {
     const { data, error } = await this.client
+      .schema('public')
       .from('bookmarks')
       .select(`
         *,
@@ -302,6 +316,7 @@ export class DBUtils {
    */
   async markAsWatched(userId: string, videoId: string, source: 'tubebrew' | 'youtube' = 'tubebrew') {
     const { data, error } = await this.client
+      .schema('public')
       .from('watch_history')
       .insert({
         user_id: userId,
@@ -327,6 +342,7 @@ export class DBUtils {
    */
   async isVideoWatched(userId: string, videoId: string): Promise<boolean> {
     const { data, error } = await this.client
+      .schema('public')
       .from('watch_history')
       .select('video_id')
       .eq('user_id', userId)
@@ -341,6 +357,7 @@ export class DBUtils {
    */
   async getUserSettings(userId: string) {
     const { data, error } = await this.client
+      .schema('public')
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
@@ -358,6 +375,7 @@ export class DBUtils {
    */
   async updateUserSettings(userId: string, settings: Partial<Database['public']['Tables']['user_settings']['Update']>) {
     const { data, error } = await this.client
+      .schema('public')
       .from('user_settings')
       .update(settings)
       .eq('user_id', userId)

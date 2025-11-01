@@ -24,7 +24,9 @@ const fastify = Fastify({
           },
         },
       }
-    : true,
+    : {
+        level: 'info',
+      },
 });
 
 // Use Fastify's logger
@@ -47,6 +49,13 @@ fastify.get('/stats', async () => {
     videoCollection: videoCollectionCounts,
     summaryGeneration: summaryGenCounts,
   };
+});
+
+// Manual trigger endpoint for testing
+fastify.post('/trigger-collection', async () => {
+  logger.info('Manual video collection triggered');
+  await scheduleVideoCollection();
+  return { success: true, message: 'Video collection triggered' };
 });
 
 // Queue definitions
@@ -94,8 +103,9 @@ async function scheduleVideoCollection() {
   try {
     logger.info('Starting scheduled video collection');
 
-    // Get all users
+    // Get all users from public schema (not auth schema)
     const { data: users, error } = await supabaseAdmin
+      .schema('public')
       .from('users')
       .select('id, provider_token');
 
