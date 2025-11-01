@@ -1,0 +1,28 @@
+{
+  "name": "@tubebrew/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@tubebrew/db": "workspace:*",
+    "@tubebrew/youtube": "workspace:*",
+    "@tubebrew/ai": "workspace:*",
+    "@tubebrew/types": "workspace:*",
+    "bullmq": "^5.35.3",
+    "fastify": "^5.2.0",
+    "ioredis": "^5.4.2",
+    "dotenv": "^16.4.7",
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}

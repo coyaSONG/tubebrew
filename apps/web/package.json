@@ -9,6 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tubebrew/db": "workspace:*",
+    "@tubebrew/types": "workspace:*",
+    "@tubebrew/youtube": "workspace:*",
+    "@tubebrew/ai": "workspace:*",
+    "@tanstack/react-query": "^5.62.12",
+    "zustand": "^5.0.2",
+    "next-auth": "^4.24.11",
+    "sonner": "^1.7.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.552.0",

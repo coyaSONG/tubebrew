@@ -11,13 +11,14 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "clean": "turbo clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "db:generate-types": "cd packages/db && pnpm run generate-types"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
     "prettier": "^3.3.3"
   },
-  "packageManager": "npm@10.9.2",
+  "packageManager": "pnpm@9.15.1",
   "engines": {
     "node": ">=20.0.0"
   }

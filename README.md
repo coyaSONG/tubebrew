@@ -19,12 +19,14 @@ TubeBrew는 YouTube 구독 채널이 많은 사용자들이 새로 업로드되�
 tubebrew/
 ├── apps/
 │   ├── web/                    # Next.js 웹 앱
-│   └── worker/                 # 백그라운드 작업 서버 (TODO)
+│   └── worker/                 # 백그라운드 작업 서버 (Fastify + BullMQ)
 ├── packages/
-│   ├── db/                     # Supabase 클라이언트 및 타입
-│   ├── youtube/                # YouTube API 래퍼
-│   ├── ai/                     # AI 통합 (요약, 트랜스크립션)
-│   └── types/                  # 공유 타입 정의
+│   ├── db/                     # Supabase 클라이언트 및 스키마
+│   │   ├── migrations/         # DB 마이그레이션 파일
+│   │   └── src/                # DB 유틸리티
+│   ├── youtube/                # YouTube API + Transcript
+│   ├── ai/                     # AI 통합 (LiteLLM)
+│   └── types/                  # 공유 TypeScript 타입
 ```
 
 ## 🚀 기술 스택
@@ -34,24 +36,35 @@ tubebrew/
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS 4
 - **UI Components**: shadcn/ui
-- **State Management**: React Context / Zustand (TBD)
+- **State Management**:
+  - Server State: TanStack Query (React Query)
+  - Client State: Zustand
+- **Toast**: Sonner
 
 ### Backend
-- **API**: Next.js API Routes
+- **Web API**: Next.js API Routes
+- **Worker**: Fastify + BullMQ
 - **Database**: Supabase (PostgreSQL)
 - **Cache**: Redis (Upstash)
 - **Auth**: NextAuth.js + Google OAuth
+- **Logging**: Pino (structured logging)
 
 ### AI & External Services
-- **LLM**: LiteLLM (OpenRouter for dev, OpenAI/Claude for prod)
-- **Transcription**: OpenAI Whisper API
-- **YouTube**: YouTube Data API v3, PubSubHubbub
+- **LLM**: LiteLLM
+  - Dev: OpenRouter (무료 모델)
+  - Prod: OpenAI GPT-4o-mini, Claude Sonnet 4
+- **Transcription**:
+  - Primary: youtube-transcript (무료)
+  - Fallback: OpenAI Whisper API
+- **YouTube**:
+  - Phase 1: RSS Feed + YouTube Data API
+  - Phase 2+: PubSubHubbub (WebSub)
 
 ## 📦 설치 및 실행
 
 ### 필수 요구사항
 - Node.js 20+
-- npm 10+
+- pnpm 9+ (설치: `npm install -g pnpm` 또는 `brew install pnpm`)
 
 ### 설치
 
@@ -61,7 +74,7 @@ git clone <repository-url>
 cd tubebrew
 
 # 의존성 설치
-npm install
+pnpm install
 ```
 
 ### 환경 변수 설정
@@ -69,40 +82,83 @@ npm install
 ```bash
 # 루트 디렉토리에 .env.local 생성
 cp .env.example .env.local
-
-# apps/web에도 .env.local 생성
-cp apps/web/.env.local.example apps/web/.env.local
 ```
 
 필요한 환경 변수를 `.env.local` 파일에 입력하세요:
-- Supabase 프로젝트 URL 및 키
-- Google OAuth 클라이언트 ID/Secret
-- YouTube API 키
-- AI 서비스 API 키 (OpenRouter, OpenAI 등)
+
+1. **Supabase** (데이터베이스)
+   - `NEXT_PUBLIC_SUPABASE_URL`: Supabase 프로젝트 URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Anon/Public 키
+   - `SUPABASE_SERVICE_ROLE_KEY`: Service Role 키
+
+2. **Google OAuth** (인증)
+   - `GOOGLE_CLIENT_ID`: Google Cloud Console에서 발급
+   - `GOOGLE_CLIENT_SECRET`: Google Cloud Console에서 발급
+   - `NEXTAUTH_SECRET`: `openssl rand -base64 32`로 생성
+   - `NEXTAUTH_URL`: http://localhost:3000 (개발 환경)
+
+3. **YouTube Data API**
+   - `YOUTUBE_API_KEY`: Google Cloud Console에서 발급
+
+4. **AI 서비스**
+   - Dev: `OPENROUTER_API_KEY` (무료 모델 사용)
+   - Prod: `OPENAI_API_KEY` (GPT-4o-mini)
+
+5. **Redis** (캐싱 & 작업 큐)
+   - `REDIS_URL`: Upstash Redis URL
+
+### Supabase 데이터베이스 설정
+
+1. [Supabase](https://supabase.com) 에서 새 프로젝트 생성
+2. SQL Editor에서 마이그레이션 실행:
+   ```bash
+   # packages/db/migrations/20251101000001_initial_schema.sql 파일 내용을 복사해서 실행
+   ```
+3. Settings > API에서 URL과 키를 복사하여 .env.local에 추가
+
+### Google OAuth 설정
+
+1. [Google Cloud Console](https://console.cloud.google.com) 에서 프로젝트 생성
+2. "APIs & Services" > "OAuth consent screen" 설정
+3. "Credentials" > "Create Credentials" > "OAuth client ID"
+   - Application type: Web application
+   - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`
+4. Client ID와 Secret을 .env.local에 추가
+
+### YouTube API 설정
+
+1. Google Cloud Console > "APIs & Services" > "Library"
+2. "YouTube Data API v3" 검색 후 활성화
+3. "Credentials" > "Create Credentials" > "API Key"
+4. API 키를 .env.local에 추가
 
 ### 개발 서버 실행
 
 ```bash
 # 모든 앱을 동시에 실행 (Turborepo)
-npm run dev
+pnpm dev
 
 # 또는 개별 실행
 cd apps/web
-npm run dev
+pnpm dev
 ```
 
 웹 앱은 [http://localhost:3000](http://localhost:3000)에서 실행됩니다.
 
 ## 🗂️ 개발 로드맵
 
-### Phase 1: MVP (현재)
+### Phase 1: MVP (현재 - Week 1)
 - [x] 프로젝트 초기 설정
-- [x] Monorepo 구조 생성
-- [ ] Google OAuth 인증
+- [x] Monorepo 구조 생성 (Turborepo)
+- [x] Packages 구조 설정 (db, youtube, ai, types)
+- [x] Worker 앱 생성 (Fastify + BullMQ)
+- [x] Database 스키마 설계 (Supabase)
+- [x] PRD v1.1 작성 및 개선
+- [ ] **Next: Google OAuth 인증 구현**
 - [ ] YouTube 구독 채널 수집
 - [ ] AI 기반 채널 분류
-- [ ] 영상 수집 파이프라인
-- [ ] AI 요약 생성
+- [ ] 영상 수집 파이프라인 (RSS Feed)
+- [ ] AI 요약 생성 (GPT-4o-mini)
 - [ ] 메인 대시보드 UI
 
 ### Phase 2: 기능 확장
@@ -127,19 +183,19 @@ npm run dev
 
 ```bash
 # 개발 서버 실행
-npm run dev
+pnpm dev
 
 # 프로덕션 빌드
-npm run build
+pnpm build
 
 # 린트 검사
-npm run lint
+pnpm lint
 
 # 포맷팅
-npm run format
+pnpm format
 
 # 전체 정리
-npm run clean
+pnpm clean
 ```
 
 ## 🤝 기여
