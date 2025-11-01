@@ -1,5 +1,5 @@
-// Database-specific types (will be generated from Supabase schema)
-// TODO: Generate types from Supabase schema after database setup
+// Database-specific types
+// Run `npm run db:generate-types` to regenerate from Supabase schema
 
 export type Json =
   | string
@@ -9,10 +9,20 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// This file will be replaced by database.types.ts after running generate-types
+// For now, we export a minimal structure
 export interface Database {
   public: {
     Tables: {
-      // Will be populated after schema migration
+      users: any;
+      user_settings: any;
+      channels: any;
+      user_channels: any;
+      videos: any;
+      transcripts: any;
+      summaries: any;
+      bookmarks: any;
+      watch_history: any;
     }
   }
 }

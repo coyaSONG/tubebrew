@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "generate-types": "npx supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > src/database.types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10"

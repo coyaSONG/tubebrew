@@ -61,3 +61,77 @@ export interface UserSettings {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface UserChannel {
+  userId: string;
+  channelId: string;
+  customCategory?: string;
+  isHidden: boolean;
+  notificationEnabled: boolean;
+  customSummaryLevel?: SummaryLevel;
+  createdAt: Date;
+}
+
+export interface Transcript {
+  id: string;
+  videoId: string;
+  source: 'youtube' | 'whisper';
+  language: string;
+  content: string;
+  createdAt: Date;
+}
+
+export interface Bookmark {
+  userId: string;
+  videoId: string;
+  priority: 1 | 2 | 3;
+  createdAt: Date;
+}
+
+export interface WatchHistory {
+  userId: string;
+  videoId: string;
+  watchedAt: Date;
+  source: 'tubebrew' | 'youtube';
+}
+
+// Extended types for API responses
+export interface VideoWithChannel extends Video {
+  channel: Channel;
+  summaries?: Summary[];
+}
+
+export interface DashboardVideo extends VideoWithChannel {
+  isBookmarked: boolean;
+  isWatched: boolean;
+  userSummaryLevel: SummaryLevel;
+}
+
+// Job Queue Types
+export interface VideoProcessingJob {
+  videoId: string;
+  youtubeId: string;
+  channelId: string;
+  forceTranscription?: boolean;
+}
+
+export interface SummaryGenerationJob {
+  videoId: string;
+  transcriptId: string;
+  levels: SummaryLevel[];
+}
+
+// API Response Types
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
