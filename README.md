@@ -46,7 +46,7 @@ tubebrew/
 - **Worker**: Fastify + BullMQ
 - **Database**: Supabase (PostgreSQL)
 - **Cache**: Redis (Upstash)
-- **Auth**: NextAuth.js + Google OAuth
+- **Auth**: Supabase Auth + Google OAuth (YouTube API scopes)
 - **Logging**: Pino (structured logging)
 
 ### AI & External Services
@@ -91,11 +91,8 @@ cp .env.example .env.local
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Anon/Public 키
    - `SUPABASE_SERVICE_ROLE_KEY`: Service Role 키
 
-2. **Google OAuth** (인증)
-   - `GOOGLE_CLIENT_ID`: Google Cloud Console에서 발급
-   - `GOOGLE_CLIENT_SECRET`: Google Cloud Console에서 발급
-   - `NEXTAUTH_SECRET`: `openssl rand -base64 32`로 생성
-   - `NEXTAUTH_URL`: http://localhost:3000 (개발 환경)
+2. **App 설정**
+   - `NEXT_PUBLIC_APP_URL`: http://localhost:3000 (개발 환경)
 
 3. **YouTube Data API**
    - `YOUTUBE_API_KEY`: Google Cloud Console에서 발급
@@ -116,14 +113,21 @@ cp .env.example .env.local
    ```
 3. Settings > API에서 URL과 키를 복사하여 .env.local에 추가
 
-### Google OAuth 설정
+### Google OAuth 설정 (Supabase)
 
 1. [Google Cloud Console](https://console.cloud.google.com) 에서 프로젝트 생성
 2. "APIs & Services" > "OAuth consent screen" 설정
+   - User Type: External 선택
+   - Scopes 추가:
+     - `openid`, `email`, `profile`
+     - `https://www.googleapis.com/auth/youtube.readonly`
+     - `https://www.googleapis.com/auth/youtube.force-ssl`
 3. "Credentials" > "Create Credentials" > "OAuth client ID"
    - Application type: Web application
-   - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`
-4. Client ID와 Secret을 .env.local에 추가
+   - Authorized redirect URIs: `https://[YOUR-PROJECT-REF].supabase.co/auth/v1/callback`
+4. Supabase Dashboard > Authentication > Providers > Google
+   - Client ID와 Client Secret 입력
+   - "Enabled" 체크
 
 ### YouTube API 설정
 
@@ -147,21 +151,31 @@ pnpm dev
 
 ## 🗂️ 개발 로드맵
 
-### Phase 1: MVP (현재 - Week 1-2 완료)
+### Phase 1: MVP (현재 - Week 1-3 진행 중)
+
+**인프라 및 인증 (✅ 완료)**
 - [x] 프로젝트 초기 설정
 - [x] Monorepo 구조 생성 (Turborepo)
 - [x] Packages 구조 설정 (db, youtube, ai, types)
 - [x] Worker 앱 생성 (Fastify + BullMQ)
 - [x] Database 스키마 설계 및 마이그레이션 파일 생성
 - [x] PRD v1.2 작성 및 팩트 체크
-- [x] Google OAuth 인증 구현 (NextAuth.js)
 - [x] YouTube Data API 클라이언트 구현
 - [x] AI 서비스 구현 (LiteLLM)
 - [x] 데이터베이스 유틸리티 구현
 - [x] 환경 설정 가이드 작성 (SETUP_GUIDE.md)
-- [ ] **Next: 환경 설정 완료 후 온보딩 플로우 구현**
-- [ ] 구독 채널 수집 UI
-- [ ] AI 기반 채널 분류 UI
+- [x] ~~NextAuth.js 인증 구현~~
+- [x] **Supabase Auth 마이그레이션 완료** (2025-11-01)
+  - Google OAuth + YouTube API scopes
+  - 세션 관리 및 middleware 구현
+  - Provider token 저장 및 갱신
+  - 사용자 자동 생성 트리거
+
+**다음 단계 (🚧 진행 예정)**
+- [ ] **온보딩 플로우 구현**
+  - [ ] YouTube 구독 채널 가져오기 API
+  - [ ] 채널 선택 UI
+  - [ ] AI 기반 채널 분류
 - [ ] 영상 수집 파이프라인 (RSS Feed)
 - [ ] AI 요약 생성 통합
 - [ ] 메인 대시보드 UI
@@ -218,4 +232,4 @@ Private - 개인 프로젝트
 
 ---
 
-**현재 상태**: 🚧 개발 중 (Phase 1 - Week 1-2 완료, 환경 설정 대기 중)
+**현재 상태**: 🚧 개발 중 (Phase 1 - Week 1-3, Supabase Auth 완료 → 온보딩 플로우 진행 예정)
