@@ -1,9 +1,3 @@
-import { config } from 'dotenv';
-import { resolve } from 'path';
-
-// Load .env from worker directory
-config({ path: resolve(process.cwd(), '.env') });
-
 import Fastify from 'fastify';
 import { Worker, Queue, QueueScheduler } from 'bullmq';
 import Redis from 'ioredis';
