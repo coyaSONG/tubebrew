@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { AI_CONFIG } from './config';
 
 export interface SummaryOptions {
   level: 1 | 2 | 3 | 4;
@@ -24,21 +25,35 @@ export class AIService {
   private model: string;
 
   constructor(apiKey?: string, baseURL?: string, model?: string) {
-    // Support OpenRouter or OpenAI
+    // Prioritize OpenRouter for free tier
+    const apiKeyToUse =
+      apiKey || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+    const baseURLToUse =
+      baseURL ||
+      process.env.OPENROUTER_BASE_URL ||
+      AI_CONFIG.openrouter.baseURL;
+
     this.openai = new OpenAI({
-      apiKey: apiKey || process.env.OPENAI_API_KEY,
-      baseURL: baseURL || process.env.OPENROUTER_BASE_URL,
+      apiKey: apiKeyToUse,
+      baseURL: baseURLToUse,
     });
 
-    // Default to GPT-4o-mini for production, or free models for dev
-    this.model = model || process.env.LLM_MODEL || 'gpt-4o-mini';
+    // Default to best free model from OpenRouter
+    this.model =
+      model ||
+      process.env.LLM_MODEL ||
+      AI_CONFIG.openrouter.defaultModel ||
+      'gpt-4o-mini';
+
+    console.log(`[AIService] Using model: ${this.model}`);
+    console.log(`[AIService] Base URL: ${baseURLToUse}`);
   }
 
   /**
    * Transcribe audio from video (using Whisper API)
    * Only use when YouTube captions are not available
    */
-  async transcribeVideo(audioFile: File | Blob): Promise<string> {
+  async transcribeVideo(audioFile: File): Promise<string> {
     try {
       const response = await this.openai.audio.transcriptions.create({
         file: audioFile,
@@ -55,7 +70,7 @@ export class AIService {
 
   /**
    * Generate AI summary of video transcript
-   * Supports 4 levels of detail
+   * Supports 4 levels of detail with automatic fallback
    */
   async generateSummary(
     videoTitle: string,
@@ -63,36 +78,68 @@ export class AIService {
     options: SummaryOptions
   ): Promise<Summary> {
     const systemPrompt = this.buildSystemPrompt(options);
-    const userPrompt = this.buildUserPrompt(videoTitle, transcript, options.level);
+    const userPrompt = this.buildUserPrompt(
+      videoTitle,
+      transcript,
+      options.level
+    );
 
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: this.getMaxTokens(options.level),
-      });
+    // Try with primary model first, then fallback models
+    const modelsToTry = [this.model, ...AI_CONFIG.openrouter.fallbackModels];
 
-      const content = response.choices[0]?.message?.content || '';
-      const tokensUsed = response.usage?.total_tokens || 0;
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const currentModel = modelsToTry[i];
+      try {
+        console.log(
+          `[AIService] Attempting summary with model: ${currentModel}`
+        );
 
-      return {
-        level: options.level,
-        content,
-        tokensUsed,
-        model: this.model,
-      };
-    } catch (error) {
-      console.error('Error generating summary:', error);
-      throw new Error('Failed to generate summary');
+        const response = await this.openai.chat.completions.create({
+          model: currentModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.3,
+          max_tokens: this.getMaxTokens(options.level),
+        });
+
+        const content = response.choices[0]?.message?.content || '';
+        const tokensUsed = response.usage?.total_tokens || 0;
+
+        console.log(
+          `[AIService] Successfully generated summary with ${currentModel}`
+        );
+
+        return {
+          level: options.level,
+          content,
+          tokensUsed,
+          model: currentModel,
+        };
+      } catch (error) {
+        console.error(
+          `[AIService] Error with model ${currentModel}:`,
+          error instanceof Error ? error.message : error
+        );
+
+        // If this was the last model, throw error
+        if (i === modelsToTry.length - 1) {
+          console.error('[AIService] All models failed for summary');
+          throw new Error('Failed to generate summary with all available models');
+        }
+
+        // Otherwise, try next model
+        console.log('[AIService] Trying next fallback model...');
+      }
     }
+
+    throw new Error('Failed to generate summary');
   }
 
   /**
    * Classify channel into categories based on channel info
+   * Includes automatic fallback to alternative models if primary fails
    */
   async classifyChannel(
     channelTitle: string,
@@ -101,18 +148,25 @@ export class AIService {
   ): Promise<string> {
     const systemPrompt = `당신은 YouTube 채널을 카테고리로 분류하는 전문가입니다.
 다음 카테고리 중 하나로 분류해주세요:
-- 개발/기술
-- 음악/엔터테인먼트
-- 뉴스/시사
-- 교육
-- 라이프스타일
-- 게임
-- 스포츠
-- 요리/푸드
-- 여행
-- 기타
 
-채널명, 설명, 최근 영상 제목을 분석하여 가장 적합한 카테고리 하나만 답변해주세요.`;
+- 개발/기술: 프로그래밍, 코딩, 소프트웨어, IT, 개발 튜토리얼
+- 게임: 게임 플레이, 게임 리뷰, e-스포츠, 게임 방송
+- 음악/K-pop: 음악 영상, K-pop 아이돌, 뮤직비디오, 음악 커버
+- 엔터테인먼트/예능: 버라이어티, 토크쇼, 코미디, 예능 프로그램
+- 뷰티/패션: 메이크업, 스킨케어, 패션, 뷰티 제품 리뷰
+- 금융/재테크: 주식, 투자, 부동산, 경제, 재테크 정보
+- 교육: 강의, 학습, 지식 공유, 교육 콘텐츠
+- 푸드/먹방: 요리, 먹방, 레시피, 맛집 소개
+- 동물/펫: 반려동물, 강아지, 고양이, 동물 일상
+- 스포츠: 운동, 스포츠 경기, 선수, 스포츠 뉴스
+- 건강/운동: 피트니스, 운동 루틴, 건강 정보, 다이어트
+- 라이프스타일/Vlog: 일상 브이로그, 라이프스타일, 일상 공유
+- 뉴스/시사: 뉴스, 시사, 정치, 사회 이슈
+- 여행: 여행 브이로그, 여행 정보, 관광지 소개
+- 기타: 위 카테고리에 속하지 않는 채널
+
+채널명, 설명, 최근 영상 제목을 종합적으로 분석하여 가장 적합한 카테고리 하나만 정확히 답변해주세요.
+카테고리명만 답변하고 다른 설명은 추가하지 마세요.`;
 
     const userPrompt = `채널명: ${channelTitle}
 
@@ -123,22 +177,51 @@ ${recentVideoTitles.slice(0, 5).map((title, i) => `${i + 1}. ${title}`).join('\n
 
 카테고리:`;
 
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.1,
-        max_tokens: 50,
-      });
+    // Try with primary model first, then fallback models
+    const modelsToTry = [this.model, ...AI_CONFIG.openrouter.fallbackModels];
 
-      return response.choices[0]?.message?.content?.trim() || '기타';
-    } catch (error) {
-      console.error('Error classifying channel:', error);
-      return '기타';
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const currentModel = modelsToTry[i];
+      try {
+        console.log(
+          `[AIService] Attempting classification with model: ${currentModel}`
+        );
+
+        const response = await this.openai.chat.completions.create({
+          model: currentModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 50,
+        });
+
+        const category = response.choices[0]?.message?.content?.trim();
+        if (category) {
+          console.log(
+            `[AIService] Successfully classified with ${currentModel}: ${category}`
+          );
+          return category;
+        }
+      } catch (error) {
+        console.error(
+          `[AIService] Error with model ${currentModel}:`,
+          error instanceof Error ? error.message : error
+        );
+
+        // If this was the last model, return default
+        if (i === modelsToTry.length - 1) {
+          console.error('[AIService] All models failed, returning default');
+          return '기타';
+        }
+
+        // Otherwise, try next model
+        console.log('[AIService] Trying next fallback model...');
+      }
     }
+
+    return '기타';
   }
 
   /**

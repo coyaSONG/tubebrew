@@ -50,9 +50,10 @@ tubebrew/
 - **Logging**: Pino (structured logging)
 
 ### AI & External Services
-- **LLM**: LiteLLM
-  - Dev: OpenRouter (무료 모델)
-  - Prod: OpenAI GPT-4o-mini, Claude Sonnet 4
+- **LLM**: OpenRouter (무료 Tier 사용)
+  - Primary: **Llama 3.3 70B Instruct** (무료, 최고 성능)
+  - Fallback: Mistral Small 3.1, DeepSeek V3, Gemini 2.5 Pro Exp
+  - Optional: OpenAI GPT-4o-mini (유료 대안)
 - **Transcription**:
   - Primary: youtube-transcript (무료)
   - Fallback: OpenAI Whisper API
@@ -97,9 +98,11 @@ cp .env.example .env.local
 3. **YouTube Data API**
    - `YOUTUBE_API_KEY`: Google Cloud Console에서 발급
 
-4. **AI 서비스**
-   - Dev: `OPENROUTER_API_KEY` (무료 모델 사용)
-   - Prod: `OPENAI_API_KEY` (GPT-4o-mini)
+4. **AI 서비스** (OpenRouter 무료 Tier 권장)
+   - `OPENROUTER_API_KEY`: [OpenRouter](https://openrouter.ai)에서 무료 발급
+   - `OPENROUTER_BASE_URL`: https://openrouter.ai/api/v1
+   - `LLM_MODEL`: meta-llama/llama-3.3-70b-instruct:free (기본값)
+   - (선택) `OPENAI_API_KEY`: 유료 대안 사용 시
 
 5. **Redis** (캐싱 & 작업 큐)
    - `REDIS_URL`: Upstash Redis URL
@@ -171,11 +174,15 @@ pnpm dev
   - Provider token 저장 및 갱신
   - 사용자 자동 생성 트리거
 
+**다음 단계 (✅ 완료)**
+- [x] **온보딩 플로우 구현** (2025-11-01)
+  - [x] YouTube 구독 채널 가져오기 API
+  - [x] 채널 선택 UI
+  - [x] AI 기반 채널 분류
+  - [x] 채널 저장 및 사용자 관계 설정
+  - [x] 온보딩 완료 후 리다이렉션
+
 **다음 단계 (🚧 진행 예정)**
-- [ ] **온보딩 플로우 구현**
-  - [ ] YouTube 구독 채널 가져오기 API
-  - [ ] 채널 선택 UI
-  - [ ] AI 기반 채널 분류
 - [ ] 영상 수집 파이프라인 (RSS Feed)
 - [ ] AI 요약 생성 통합
 - [ ] 메인 대시보드 UI
@@ -232,4 +239,4 @@ Private - 개인 프로젝트
 
 ---
 
-**현재 상태**: 🚧 개발 중 (Phase 1 - Week 1-3, Supabase Auth 완료 → 온보딩 플로우 진행 예정)
+**현재 상태**: 🚧 개발 중 (Phase 1 - Week 1-3, 온보딩 플로우 완료 → 영상 수집 파이프라인 진행 예정)

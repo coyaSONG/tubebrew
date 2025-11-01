@@ -126,9 +126,12 @@ ALTER TABLE user_channels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE watch_history ENABLE ROW LEVEL SECURITY;
 
--- Users can only read/update their own data
+-- Users can read/create/update their own data
 CREATE POLICY "Users can view own data" ON users
   FOR SELECT USING (auth.uid()::text = google_id);
+
+CREATE POLICY "Users can create own data" ON users
+  FOR INSERT WITH CHECK (auth.uid()::text = google_id);
 
 CREATE POLICY "Users can update own data" ON users
   FOR UPDATE USING (auth.uid()::text = google_id);
@@ -196,3 +199,25 @@ CREATE TRIGGER update_channels_updated_at BEFORE UPDATE ON channels
 
 CREATE TRIGGER update_videos_updated_at BEFORE UPDATE ON videos
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Auto-create user in public.users when they sign up via Supabase Auth
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (google_id, email, name, avatar_url)
+  VALUES (
+    NEW.id::text,
+    NEW.email,
+    NEW.raw_user_meta_data->>'name',
+    NEW.raw_user_meta_data->>'avatar_url'
+  )
+  ON CONFLICT (google_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to create user on sign up
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();

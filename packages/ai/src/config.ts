@@ -1,12 +1,16 @@
 // AI service configuration
 
 export const AI_CONFIG = {
-  // OpenRouter (Development)
+  // OpenRouter (Development & Production - Free Tier)
   openrouter: {
     baseURL: 'https://openrouter.ai/api/v1',
-    freeModels: [
-      'google/gemini-flash-1.5-8b',
-      'meta-llama/llama-3.2-3b-instruct:free',
+    // Primary model: Best free model for text classification (Nov 2025)
+    defaultModel: 'meta-llama/llama-3.3-70b-instruct:free',
+    // Fallback models in order of preference
+    fallbackModels: [
+      'mistralai/mistral-small-3.1-24b-instruct:free',
+      'deepseek/deepseek-chat-v3-0324:free',
+      'google/gemini-2.5-pro-exp-03-25:free', // High performance but experimental
     ],
   },
 
@@ -50,18 +54,23 @@ export const AI_CONFIG = {
     },
   },
 
-  // Default categories
+  // Default categories (optimized for Korean YouTube market 2025)
   categories: [
-    '개발/기술',
-    '음악/엔터테인먼트',
-    '뉴스/시사',
-    '교육',
-    '라이프스타일',
-    '게임',
-    '스포츠',
-    '요리/푸드',
-    '여행',
-    '기타',
+    '개발/기술',         // Tech & Development
+    '게임',              // Gaming
+    '음악/K-pop',        // Music & K-pop
+    '엔터테인먼트/예능',  // Entertainment & Variety
+    '뷰티/패션',         // Beauty & Fashion
+    '금융/재테크',       // Finance & Investment
+    '교육',              // Education
+    '푸드/먹방',         // Food & Mukbang
+    '동물/펫',           // Pets & Animals
+    '스포츠',            // Sports
+    '건강/운동',         // Health & Fitness
+    '라이프스타일/Vlog', // Lifestyle & Vlog
+    '뉴스/시사',         // News & Current Affairs
+    '여행',              // Travel
+    '기타',              // Others
   ],
 } as const;
 

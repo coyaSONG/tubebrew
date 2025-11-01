@@ -24,24 +24,43 @@ export class YouTubeAPI {
   }
 
   /**
-   * Get user's subscribed channels
+   * Get user's subscribed channels (all of them using pagination)
    * Requires OAuth with youtube.readonly scope
    */
-  async getSubscribedChannels(maxResults: number = 50) {
+  async getSubscribedChannels() {
     try {
-      const response = await this.youtube.subscriptions.list({
-        part: ['snippet', 'contentDetails'],
-        mine: true,
-        maxResults,
-      });
+      const allChannels: Array<{
+        channelId: string;
+        title: string;
+        description: string;
+        thumbnail: string;
+        publishedAt: string;
+      }> = [];
 
-      return response.data.items?.map((item) => ({
-        channelId: item.snippet?.resourceId?.channelId || '',
-        title: item.snippet?.title || '',
-        description: item.snippet?.description || '',
-        thumbnail: item.snippet?.thumbnails?.high?.url || '',
-        publishedAt: item.snippet?.publishedAt || '',
-      })) || [];
+      let nextPageToken: string | undefined;
+
+      // Fetch all pages
+      do {
+        const response = await this.youtube.subscriptions.list({
+          part: ['snippet', 'contentDetails'],
+          mine: true,
+          maxResults: 50, // Maximum allowed per request
+          pageToken: nextPageToken,
+        });
+
+        const channels = response.data.items?.map((item) => ({
+          channelId: item.snippet?.resourceId?.channelId || '',
+          title: item.snippet?.title || '',
+          description: item.snippet?.description || '',
+          thumbnail: item.snippet?.thumbnails?.high?.url || '',
+          publishedAt: item.snippet?.publishedAt || '',
+        })) || [];
+
+        allChannels.push(...channels);
+        nextPageToken = response.data.nextPageToken || undefined;
+      } while (nextPageToken);
+
+      return allChannels;
     } catch (error) {
       console.error('Error fetching subscribed channels:', error);
       throw new Error('Failed to fetch subscribed channels');
