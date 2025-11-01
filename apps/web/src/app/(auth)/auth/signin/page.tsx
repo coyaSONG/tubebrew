@@ -1,11 +1,26 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
+import { signInWithGoogle } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function SignIn() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/';
+  const next = searchParams?.get('next') || '/';
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Sign in error:', error);
+      toast.error('로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -19,8 +34,9 @@ export default function SignIn() {
 
         <div className="mt-8 space-y-4">
           <button
-            onClick={() => signIn('google', { callbackUrl })}
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            onClick={handleSignIn}
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -40,7 +56,7 @@ export default function SignIn() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Google로 로그인
+            {isLoading ? '로그인 중...' : 'Google로 로그인'}
           </button>
 
           <p className="text-center text-xs text-gray-500">
