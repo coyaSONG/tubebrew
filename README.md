@@ -186,13 +186,38 @@ pnpm dev
     - users, user_channels, user_settings, bookmarks, watch_history 테이블
     - google_id 기반 정책으로 수정하여 redirect loop 해결
 
+**백엔드 파이프라인 (✅ 완료 - 2025-11-02)**
+- [x] **Worker 앱 구현**
+  - [x] Fastify 서버 설정 및 로깅 시스템
+  - [x] BullMQ 작업 큐 설정 (Redis 연동)
+  - [x] RSS 폴링 Job 구현 (`jobs/video-collection.ts`)
+    - RSS 피드에서 새 영상 자동 수집
+    - 중복 체크 및 메타데이터 업데이트
+    - 채널별 병렬 처리
+  - [x] AI 요약 생성 Job 구현 (`jobs/summary-generation.ts`)
+    - 자막/트랜스크립트 추출 및 저장
+    - 4단계 요약 레벨 생성 (한줄, 3줄, 챕터, 전문)
+    - 모델 fallback 시스템
+  - [x] 자동 스케줄러 (15분 간격 RSS 폴링)
+  - [x] 헬스체크 및 통계 엔드포인트
+- [x] **데이터베이스 유틸리티 확장**
+  - [x] `getUser()` - 사용자 조회
+  - [x] `getChannelByYouTubeId()` - 채널 조회
+  - [x] `getVideoByYouTubeId()` - 영상 조회
+  - [x] `createVideo()` - 영상 생성
+  - [x] `updateVideo()` - 영상 업데이트
+
 **다음 단계 (🚧 진행 예정)**
-- [ ] 영상 수집 파이프라인 (RSS Feed)
-- [ ] AI 요약 생성 통합
-- [ ] 메인 대시보드 UI
-  - [ ] 채널별 최신 영상 목록
+- [ ] 메인 대시보드 UI 구현
+  - [ ] 영상 피드 API 라우트 (`/api/videos`)
+  - [ ] 영상 목록 컴포넌트 및 카드 UI
   - [ ] 카테고리별 필터링
-  - [ ] 영상 요약 표시
+  - [ ] 요약 레벨 토글 (한줄 ↔ 상세)
+- [ ] 설정 페이지
+  - [ ] 채널 관리 (숨기기/표시, 카테고리 변경)
+  - [ ] 요약 레벨 기본값 설정
+  - [ ] 알림 설정
+- [ ] 북마크 및 시청 기록 UI
 
 ### Phase 2: 기능 확장
 - [ ] WebSub 실시간 알림
@@ -216,7 +241,7 @@ pnpm dev
 ## 🔧 개발 명령어
 
 ```bash
-# 개발 서버 실행
+# 개발 서버 실행 (모든 앱)
 pnpm dev
 
 # 프로덕션 빌드
@@ -230,7 +255,64 @@ pnpm format
 
 # 전체 정리
 pnpm clean
+
+# Worker 통계 확인
+curl http://localhost:3001/stats
+
+# Worker 헬스체크
+curl http://localhost:3001/health
 ```
+
+## 🐛 문제 해결
+
+### Worker가 시작되지 않는 경우
+
+**증상**: `DBUtils` export 에러 또는 모듈 해석 실패
+
+**해결 방법 1**: 전체 재시작
+```bash
+# 모든 프로세스 종료
+pkill -f "pnpm dev"
+pkill -f "tsx watch"
+
+# Node 모듈 캐시 정리 (선택사항)
+rm -rf node_modules/.cache
+
+# 재시작
+pnpm dev
+```
+
+**해결 방법 2**: TypeScript 재컴파일
+```bash
+# packages/db 디렉토리에서
+cd packages/db
+pnpm build
+
+# 루트로 돌아와서
+cd ../..
+pnpm dev
+```
+
+### Redis 연결 실패
+
+**증상**: Worker에서 Redis 연결 에러
+
+**해결**:
+1. Upstash Redis 대시보드에서 `REDIS_URL` 확인
+2. `.env.local`에 올바른 URL이 설정되어 있는지 확인
+3. Redis URL 형식: `redis://default:[password]@[host]:[port]`
+
+### YouTube API Quota 초과
+
+**현재 전략**:
+- RSS 피드 사용 (quota 무료)
+- youtube-transcript 라이브러리 (quota 무료)
+- API는 구독 채널 가져오기와 채널 상세정보에만 사용
+
+**Quota 절약 팁**:
+- RSS 피드는 최대 15개 영상만 반환
+- 폴링 간격을 15분 이상으로 유지
+- 온보딩 시에만 YouTube Data API 사용
 
 ## 🤝 기여
 
@@ -246,4 +328,51 @@ Private - 개인 프로젝트
 
 ---
 
-**현재 상태**: 🚧 개발 중 (Phase 1 - Week 1-3, 온보딩 플로우 완료 → 영상 수집 파이프라인 진행 예정)
+**현재 상태**: 🚧 개발 중 (Phase 1 - **60-70% 완료**, 백엔드 파이프라인 완성 → 대시보드 UI 구현 진행 예정)
+
+## 🎯 현재 작동 상태
+
+### ✅ 동작하는 기능
+1. **인증 시스템**
+   - Google OAuth 로그인
+   - YouTube API 권한 획득
+   - 세션 관리 및 토큰 갱신
+
+2. **온보딩 플로우**
+   - YouTube 구독 채널 자동 가져오기
+   - AI 기반 자동 채널 분류 (15개 카테고리)
+   - 채널 리뷰 및 커스터마이징
+   - 데이터베이스 저장
+
+3. **백엔드 자동화 시스템**
+   - 15분마다 RSS 피드 폴링
+   - 새 영상 자동 감지 및 저장
+   - AI 요약 자동 생성 (4단계 레벨)
+   - BullMQ 작업 큐로 병렬 처리
+   - 실패 시 자동 재시도
+
+### 🚧 개발 필요 (다음 주)
+1. **프론트엔드**
+   - 대시보드 메인 피드
+   - 영상 카드 및 요약 표시
+   - 카테고리 필터
+   - 설정 페이지
+
+2. **기능 추가**
+   - 북마크 UI
+   - 시청 기록
+   - 검색 기능
+
+## 📊 프로젝스 진행률
+
+```
+인증 & 온보딩      ████████████████████ 100%
+백엔드 파이프라인   ████████████████████ 100%
+데이터베이스       ████████████████████ 100%
+AI 통합           ████████████████████ 100%
+Worker 자동화     ████████████████████ 100%
+대시보드 UI       ████░░░░░░░░░░░░░░░░  20%
+설정 & 관리       ░░░░░░░░░░░░░░░░░░░░   0%
+```
+
+**전체 진행률: 약 65%**

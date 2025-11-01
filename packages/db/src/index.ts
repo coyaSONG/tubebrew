@@ -24,6 +24,23 @@ export class DBUtils {
   }
 
   /**
+   * Get user by ID
+   */
+  async getUser(userId: string) {
+    const { data, error } = await this.client
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to fetch user: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  /**
    * Get or create user by Google ID
    */
   async getOrCreateUser(googleId: string, email: string, name?: string, avatarUrl?: string) {
@@ -66,6 +83,75 @@ export class DBUtils {
     }
 
     return newUser;
+  }
+
+  /**
+   * Get channel by YouTube ID
+   */
+  async getChannelByYouTubeId(youtubeId: string) {
+    const { data, error } = await this.client
+      .from('channels')
+      .select('*')
+      .eq('youtube_id', youtubeId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to fetch channel: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get video by YouTube ID
+   */
+  async getVideoByYouTubeId(youtubeId: string) {
+    const { data, error } = await this.client
+      .from('videos')
+      .select('*')
+      .eq('youtube_id', youtubeId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to fetch video: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Create a new video
+   */
+  async createVideo(video: Database['public']['Tables']['videos']['Insert']) {
+    const { data, error } = await this.client
+      .from('videos')
+      .insert(video)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create video: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Update video metadata
+   */
+  async updateVideo(videoId: string, updates: Database['public']['Tables']['videos']['Update']) {
+    const { data, error } = await this.client
+      .from('videos')
+      .update(updates)
+      .eq('id', videoId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update video: ${error.message}`);
+    }
+
+    return data;
   }
 
   /**
