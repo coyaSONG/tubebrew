@@ -147,18 +147,23 @@ pnpm dev
 
 ## 🗂️ 개발 로드맵
 
-### Phase 1: MVP (현재 - Week 1)
+### Phase 1: MVP (현재 - Week 1-2 완료)
 - [x] 프로젝트 초기 설정
 - [x] Monorepo 구조 생성 (Turborepo)
 - [x] Packages 구조 설정 (db, youtube, ai, types)
 - [x] Worker 앱 생성 (Fastify + BullMQ)
-- [x] Database 스키마 설계 (Supabase)
-- [x] PRD v1.1 작성 및 개선
-- [ ] **Next: Google OAuth 인증 구현**
-- [ ] YouTube 구독 채널 수집
-- [ ] AI 기반 채널 분류
+- [x] Database 스키마 설계 및 마이그레이션 파일 생성
+- [x] PRD v1.2 작성 및 팩트 체크
+- [x] Google OAuth 인증 구현 (NextAuth.js)
+- [x] YouTube Data API 클라이언트 구현
+- [x] AI 서비스 구현 (LiteLLM)
+- [x] 데이터베이스 유틸리티 구현
+- [x] 환경 설정 가이드 작성 (SETUP_GUIDE.md)
+- [ ] **Next: 환경 설정 완료 후 온보딩 플로우 구현**
+- [ ] 구독 채널 수집 UI
+- [ ] AI 기반 채널 분류 UI
 - [ ] 영상 수집 파이프라인 (RSS Feed)
-- [ ] AI 요약 생성 (GPT-4o-mini)
+- [ ] AI 요약 생성 통합
 - [ ] 메인 대시보드 UI
 
 ### Phase 2: 기능 확장
@@ -175,7 +180,8 @@ pnpm dev
 
 ## 📖 문서
 
-- [PRD 문서](../Downloads/TubeBrew_PRD.md) - 상세한 제품 요구사항
+- [PRD 문서](TubeBrew_PRD.md) - 상세한 제품 요구사항
+- [환경 설정 가이드](SETUP_GUIDE.md) - 개발 환경 설정 방법
 - API 문서 (TBD)
 - 아키텍처 가이드 (TBD)
 
@@ -212,4 +218,4 @@ Private - 개인 프로젝트
 
 ---
 
-**현재 상태**: 🚧 개발 중 (Phase 1 - Week 1)
+**현재 상태**: 🚧 개발 중 (Phase 1 - Week 1-2 완료, 환경 설정 대기 중)
