@@ -2,6 +2,8 @@
  * 온보딩 플로우에서 사용하는 타입 정의
  */
 
+import { AI_CONFIG } from '@tubebrew/ai';
+
 export interface YouTubeChannel {
   channelId: string;
   title: string;
@@ -17,20 +19,10 @@ export interface ChannelWithCategory extends YouTubeChannel {
   isClassifying?: boolean;
 }
 
-export const DEFAULT_CATEGORIES = [
-  '개발/기술',
-  '음악/엔터테인먼트',
-  '뉴스/시사',
-  '교육',
-  '라이프스타일',
-  '게임',
-  '스포츠',
-  '요리/푸드',
-  '여행',
-  '기타',
-] as const;
+// Use AI_CONFIG.categories as the single source of truth
+export const DEFAULT_CATEGORIES = AI_CONFIG.categories;
 
-export type CategoryType = (typeof DEFAULT_CATEGORIES)[number];
+export type CategoryType = (typeof AI_CONFIG.categories)[number];
 
 export interface OnboardingStep {
   id: number;

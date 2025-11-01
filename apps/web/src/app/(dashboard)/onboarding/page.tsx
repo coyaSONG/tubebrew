@@ -133,8 +133,9 @@ export default function OnboardingPage() {
         throw new Error(data.error || 'Failed to save channels');
       }
 
-      // 완료! 메인 대시보드로 이동
-      router.push('/');
+      // 완료! 서버 데이터 갱신 후 메인 대시보드로 이동
+      router.refresh();
+      router.replace('/');
     } catch (err) {
       console.error('Error saving channels:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
