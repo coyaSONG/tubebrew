@@ -92,6 +92,25 @@ export class DBUtils {
    * Get recent videos from user's subscribed channels
    */
   async getRecentVideos(userId: string, limit: number = 50) {
+    // First, get the list of channel IDs the user is subscribed to
+    const { data: userChannels, error: channelError } = await this.client
+      .from('user_channels')
+      .select('channel_id')
+      .eq('user_id', userId)
+      .eq('is_hidden', false);
+
+    if (channelError) {
+      throw new Error(`Failed to fetch user channels: ${channelError.message}`);
+    }
+
+    // If no channels, return empty array
+    if (!userChannels || userChannels.length === 0) {
+      return [];
+    }
+
+    const channelIds = userChannels.map((uc) => uc.channel_id);
+
+    // Get videos from those channels
     const { data, error } = await this.client
       .from('videos')
       .select(`
@@ -99,14 +118,7 @@ export class DBUtils {
         channel:channels (*),
         summaries (*)
       `)
-      .in(
-        'channel_id',
-        this.client
-          .from('user_channels')
-          .select('channel_id')
-          .eq('user_id', userId)
-          .eq('is_hidden', false)
-      )
+      .in('channel_id', channelIds)
       .order('published_at', { ascending: false })
       .limit(limit);
 

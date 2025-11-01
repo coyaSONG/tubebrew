@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 const errors: Record<string, string> = {
   Configuration: '서버 설정 오류가 발생했습니다.',
@@ -10,7 +11,7 @@ const errors: Record<string, string> = {
   Default: '로그인 중 오류가 발생했습니다.',
 };
 
-export default function AuthError() {
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get('error');
   const errorMessage = error && errors[error] ? errors[error] : errors.Default;
@@ -64,5 +65,21 @@ export default function AuthError() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthError() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-red-50 to-orange-100">
+        <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-10 shadow-xl">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900">로딩 중...</h1>
+          </div>
+        </div>
+      </div>
+    }>
+      <AuthErrorContent />
+    </Suspense>
   );
 }

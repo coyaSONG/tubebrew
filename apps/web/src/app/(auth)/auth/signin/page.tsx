@@ -1,11 +1,11 @@
 'use client';
 
-import { signInWithGoogle } from '@/lib/supabase';
+import { signInWithGoogle } from '@/utils/supabase/client';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { toast } from 'sonner';
 
-export default function SignIn() {
+function SignInContent() {
   const searchParams = useSearchParams();
   const next = searchParams?.get('next') || '/';
   const [isLoading, setIsLoading] = useState(false);
@@ -82,5 +82,22 @@ export default function SignIn() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-10 shadow-xl">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900">TubeBrew</h1>
+            <p className="mt-2 text-sm text-gray-600">로딩 중...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
