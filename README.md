@@ -178,14 +178,21 @@ pnpm dev
 - [x] **온보딩 플로우 구현** (2025-11-01)
   - [x] YouTube 구독 채널 가져오기 API
   - [x] 채널 선택 UI
-  - [x] AI 기반 채널 분류
+  - [x] AI 기반 채널 분류 (최근 영상 제목 포함)
+  - [x] 채널별 최근 영상 제목 가져오기 (RSS, API quota 무료)
   - [x] 채널 저장 및 사용자 관계 설정
   - [x] 온보딩 완료 후 리다이렉션
+  - [x] **RLS 정책 수정 완료** (2025-11-02)
+    - users, user_channels, user_settings, bookmarks, watch_history 테이블
+    - google_id 기반 정책으로 수정하여 redirect loop 해결
 
 **다음 단계 (🚧 진행 예정)**
 - [ ] 영상 수집 파이프라인 (RSS Feed)
 - [ ] AI 요약 생성 통합
 - [ ] 메인 대시보드 UI
+  - [ ] 채널별 최신 영상 목록
+  - [ ] 카테고리별 필터링
+  - [ ] 영상 요약 표시
 
 ### Phase 2: 기능 확장
 - [ ] WebSub 실시간 알림

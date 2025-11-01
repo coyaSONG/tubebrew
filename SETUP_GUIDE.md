@@ -28,6 +28,12 @@
 3. `packages/db/migrations/20251101000001_initial_schema.sql` 파일의 내용을 복사하여 붙여넣기
 4. "Run" 버튼 클릭하여 스키마 생성
 
+⚠️ **중요**: RLS 정책이 올바르게 적용되었는지 확인:
+- `users` 테이블: `auth.uid()::text = google_id` (✅ 올바름)
+- `user_channels`, `user_settings` 등: `user_id IN (SELECT id FROM users WHERE google_id = auth.uid()::text)` (✅ 올바름)
+
+잘못된 정책 (❌): `auth.uid()::text = id::text` (google_id가 아닌 id와 비교)
+
 ### 1.3 API 키 확인
 1. Supabase 대시보드에서 "Settings" > "API" 메뉴 선택
 2. 다음 정보를 `.env.local`에 복사:
@@ -45,7 +51,7 @@
 3. **프로젝트 이름**: TubeBrew
 4. "만들기" 클릭
 
-### 2.2 OAuth 2.0 클라이언트 설정
+### 2.2 OAuth 2.0 클라이언트 설정 (Supabase Auth용)
 1. 좌측 메뉴: "APIs & Services" > "OAuth consent screen"
 2. User Type: **External** 선택 → "만들기"
 3. 앱 정보 입력:
@@ -53,20 +59,26 @@
    - **User support email**: 본인 이메일
    - **Developer contact information**: 본인 이메일
 4. "저장 후 계속" 클릭
-5. Scopes 단계: "저장 후 계속" (기본값 사용)
+5. **Scopes 단계**: "ADD OR REMOVE SCOPES" 클릭
+   - 다음 scopes 추가:
+     - `openid`
+     - `email`
+     - `profile`
+     - `https://www.googleapis.com/auth/youtube.readonly`
+     - `https://www.googleapis.com/auth/youtube.force-ssl`
+   - "UPDATE" → "저장 후 계속"
 6. Test users 단계: "+ ADD USERS" 클릭 → 본인 Gmail 추가
 
 7. 좌측 메뉴: "Credentials" > "+ CREATE CREDENTIALS" > "OAuth client ID"
 8. Application type: **Web application**
-9. Name: TubeBrew Web Client
+9. Name: TubeBrew Supabase Auth
 10. Authorized redirect URIs 추가:
     ```
-    http://localhost:3000/api/auth/callback/google
+    https://[YOUR-PROJECT-REF].supabase.co/auth/v1/callback
     ```
+    ⚠️ `[YOUR-PROJECT-REF]`는 Supabase 프로젝트의 Reference ID로 교체
 11. "만들기" 클릭
-12. Client ID와 Client Secret을 `.env.local`에 복사:
-    - `GOOGLE_CLIENT_ID`
-    - `GOOGLE_CLIENT_SECRET`
+12. Client ID와 Client Secret 복사 (다음 단계에서 Supabase에 입력)
 
 ### 2.3 YouTube Data API v3 활성화
 1. 좌측 메뉴: "APIs & Services" > "Library"
@@ -77,6 +89,16 @@
     - `YOUTUBE_API_KEY`
 
 ⚠️ **API 할당량**: 무료 티어는 일일 10,000 units (충분함)
+
+### 2.4 Supabase에 Google OAuth 연동
+1. Supabase 대시보드 > "Authentication" > "Providers"
+2. "Google" 찾아서 클릭
+3. 다음 정보 입력:
+   - **Enabled**: 체크
+   - **Client ID**: 위에서 복사한 Google Client ID
+   - **Client Secret**: 위에서 복사한 Google Client Secret
+   - **Authorized Client IDs**: (비워두기)
+4. "Save" 클릭
 
 ---
 
@@ -94,11 +116,19 @@
 
 ### 3.2 Redis URL 복사
 1. 생성된 데이터베이스 클릭
-2. "REST API" 탭에서 "UPSTASH_REDIS_REST_URL" 복사
+2. **"Details" 탭** (기본 탭)에서 다음 정보 복사:
+   - **REST API**: `UPSTASH_REDIS_REST_URL`과 `UPSTASH_REDIS_REST_TOKEN` (Web 앱용)
+   - **Redis Protocol**: `REDIS_URL` (Worker 앱용 - BullMQ)
 3. `.env.local`에 추가:
    ```
-   REDIS_URL=<복사한 URL>
+   # REST API (Web용)
+   UPSTASH_REDIS_REST_URL=https://xxxxx.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=xxxxx
+
+   # Redis Protocol (Worker용 - BullMQ)
+   REDIS_URL=rediss://default:xxxxx@xxxxx.upstash.io:6379
    ```
+4. Worker 앱 전용: `apps/worker/.env` 파일도 생성하여 `REDIS_URL` 추가
 
 ---
 
@@ -166,10 +196,13 @@ YOUTUBE_API_KEY=AIzaSy...
 OPENROUTER_API_KEY=sk-or-v1-xxxxx
 # OPENAI_API_KEY=sk-xxxxx  # 프로덕션 시 사용
 
-# Redis (Upstash)
-REDIS_URL=https://xxxxx.upstash.io
+# Redis (Upstash) - Web 앱용 REST API
+UPSTASH_REDIS_REST_URL=https://xxxxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=xxxxx
+# Worker 앱용 Redis Protocol은 apps/worker/.env에 별도 설정
+# REDIS_URL=rediss://default:xxxxx@xxxxx.upstash.io:6379
 
-# NextAuth
+# NextAuth (현재 사용 안 함, Supabase Auth 사용)
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=xxxxx
 

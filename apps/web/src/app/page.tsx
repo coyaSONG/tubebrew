@@ -23,7 +23,7 @@ export default async function HomePage() {
     .single();
 
   if (userError || !userData) {
-    // 사용자 레코드가 없으면 온보딩으로 (트리거가 아직 실행 안 됐을 수 있음)
+    // 사용자 레코드가 없으면 온보딩으로
     redirect('/onboarding');
   }
 

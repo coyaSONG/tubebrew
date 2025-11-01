@@ -1,17 +1,12 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env from worker directory
+config({ path: resolve(process.cwd(), '.env') });
+
 import Fastify from 'fastify';
 import { Worker, Queue } from 'bullmq';
 import Redis from 'ioredis';
-import pino from 'pino';
-
-const logger = pino({
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-    },
-  },
-});
 
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
@@ -19,8 +14,18 @@ const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:63
 
 // Initialize Fastify server
 const fastify = Fastify({
-  logger,
+  logger: {
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+      },
+    },
+  },
 });
+
+// Use Fastify's logger
+const logger = fastify.log;
 
 // Health check endpoint
 fastify.get('/health', async () => {

@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 import { ChannelWithCategory, DEFAULT_CATEGORIES } from '@/types/onboarding';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { saveChannels } from './actions';
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [step, setStep] = useState<'loading' | 'classify' | 'review' | 'saving'>('loading');
   const [channels, setChannels] = useState<ChannelWithCategory[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   // Step 1: YouTube 구독 채널 가져오기
   useEffect(() => {
@@ -61,6 +61,19 @@ export default function OnboardingPage() {
           )
         );
 
+        // 최근 영상 제목 가져오기 (RSS 사용, API quota 소모 없음)
+        let recentVideoTitles: string[] = [];
+        try {
+          const videoResponse = await fetch(`/api/youtube/channel-videos?channelId=${channel.channelId}`);
+          if (videoResponse.ok) {
+            const videoData = await videoResponse.json();
+            recentVideoTitles = videoData.titles || [];
+          }
+        } catch (err) {
+          console.warn(`Failed to fetch videos for ${channel.title}:`, err);
+          // 영상 가져오기 실패해도 분류는 진행
+        }
+
         const response = await fetch('/api/channels/classify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -68,7 +81,7 @@ export default function OnboardingPage() {
             channelId: channel.channelId,
             title: channel.title,
             description: channel.description,
-            recentVideoTitles: [], // TODO: 최근 영상 제목 가져오기
+            recentVideoTitles,
           }),
         });
 
@@ -106,15 +119,13 @@ export default function OnboardingPage() {
   };
 
   // Step 3: 사용자가 검토/수정 후 저장
-  const handleSave = async () => {
-    try {
-      setStep('saving');
-      setError(null);
+  const handleSave = () => {
+    setStep('saving');
+    setError(null);
 
-      const response = await fetch('/api/channels/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    startTransition(async () => {
+      try {
+        await saveChannels({
           channels: channels.map((ch) => ({
             youtubeId: ch.channelId,
             title: ch.title,
@@ -124,23 +135,14 @@ export default function OnboardingPage() {
             customCategory: ch.customCategory,
             isHidden: ch.isHidden,
           })),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save channels');
+        });
+        // Server Action에서 redirect()가 호출되므로 여기서는 아무것도 할 필요 없음
+      } catch (err) {
+        console.error('Error saving channels:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setStep('review');
       }
-
-      // 완료! 서버 데이터 갱신 후 메인 대시보드로 이동
-      router.refresh();
-      router.replace('/');
-    } catch (err) {
-      console.error('Error saving channels:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setStep('review');
-    }
+    });
   };
 
   // 카테고리 변경

@@ -7,12 +7,13 @@ import { toast } from 'sonner';
 
 function SignInContent() {
   const searchParams = useSearchParams();
-  const next = searchParams?.get('next') || '/';
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignIn = async () => {
     try {
       setIsLoading(true);
+      // Get next URL from search params at the time of sign in
+      const next = searchParams?.get('next') || '/';
       await signInWithGoogle();
     } catch (error) {
       console.error('Sign in error:', error);
