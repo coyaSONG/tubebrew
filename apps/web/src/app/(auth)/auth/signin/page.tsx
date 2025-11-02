@@ -1,19 +1,20 @@
 'use client';
 
 import { signInWithGoogle } from '@/utils/supabase/client';
-import { useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
-function SignInContent() {
-  const searchParams = useSearchParams();
+export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSignIn = async () => {
     try {
       setIsLoading(true);
-      // Get next URL from search params at the time of sign in
-      const next = searchParams?.get('next') || '/';
       await signInWithGoogle();
     } catch (error) {
       console.error('Sign in error:', error);
@@ -22,6 +23,10 @@ function SignInContent() {
       setIsLoading(false);
     }
   };
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -83,22 +88,5 @@ function SignInContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function SignIn() {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-10 shadow-xl">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900">TubeBrew</h1>
-            <p className="mt-2 text-sm text-gray-600">로딩 중...</p>
-          </div>
-        </div>
-      </div>
-    }>
-      <SignInContent />
-    </Suspense>
   );
 }

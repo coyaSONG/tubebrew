@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/utils/supabase/server';
+import { MobileMenu } from './mobile-menu';
 
 export async function Header() {
   const supabase = await createClient();
@@ -13,6 +14,9 @@ export async function Header() {
       <div className="container flex h-full items-center justify-between px-4">
         {/* Logo & Navigation */}
         <div className="flex items-center gap-6">
+          {/* Mobile Menu Button */}
+          <MobileMenu />
+
           <Link href="/" className="text-xl font-bold">
             TubeBrew
           </Link>

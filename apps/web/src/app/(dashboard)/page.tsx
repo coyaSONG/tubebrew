@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import { VideoFeedClient } from './(dashboard)/components/video-feed-client';
+import { VideoFeedClient } from './components/video-feed-client';
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -48,7 +48,7 @@ export default async function HomePage() {
     .single();
 
   return (
-    <div className="space-y-6">
+    <div className="py-6 lg:py-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
@@ -58,7 +58,7 @@ export default async function HomePage() {
 
       <VideoFeedClient
         userId={userData.id}
-        defaultSummaryLevel={settings?.summary_level || 2}
+        defaultSummaryLevel={(settings?.summary_level as 1 | 2 | 3 | 4 | undefined) || 2}
       />
     </div>
   );

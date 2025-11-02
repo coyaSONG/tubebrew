@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Settings } from 'lucide-react';
 import { AI_CONFIG } from '@tubebrew/ai';
 
 const CATEGORIES = ['전체', ...AI_CONFIG.categories];
@@ -13,6 +16,9 @@ export function Sidebar({
   selectedCategory,
   onCategoryChange,
 }: SidebarProps) {
+  const pathname = usePathname();
+  const isDashboard = pathname === '/';
+
   return (
     <div className="p-4 space-y-6">
       {/* Categories */}
@@ -21,8 +27,9 @@ export function Sidebar({
         <div className="space-y-1">
           {CATEGORIES.map((category) => {
             const isSelected =
-              (category === '전체' && !selectedCategory) ||
-              selectedCategory === category;
+              isDashboard &&
+              ((category === '전체' && !selectedCategory) ||
+                selectedCategory === category);
 
             return (
               <button
@@ -53,6 +60,17 @@ export function Sidebar({
           <button className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             Manage Channels
           </button>
+          <Link
+            href="/settings"
+            className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-md transition-colors ${
+              pathname === '/settings'
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </Link>
         </div>
       </div>
     </div>
