@@ -21,7 +21,10 @@ export function shouldRefreshToken(expiresAt: string | null): boolean {
     return true; // No expiration time means we should refresh
   }
 
-  const expirationTime = new Date(expiresAt).getTime();
+  // IMPORTANT: Database stores timestamp without timezone, so we must append 'Z' to treat it as UTC
+  // Otherwise JavaScript interprets it as local time (KST), causing 8-hour offset
+  const expiresAtUTC = expiresAt.endsWith('Z') ? expiresAt : expiresAt + 'Z';
+  const expirationTime = new Date(expiresAtUTC).getTime();
   const now = Date.now();
 
   // Refresh if token expires in less than 5 minutes
@@ -62,7 +65,12 @@ export async function refreshProviderToken(
       expiresAt: new Date(credentials.expiry_date).toISOString(),
     };
   } catch (error) {
-    console.error('Error refreshing provider token:', error);
+    console.error('❌ [OAuth] Error refreshing provider token:', error);
+    if (error instanceof Error) {
+      console.error('❌ [OAuth] Error name:', error.name);
+      console.error('❌ [OAuth] Error message:', error.message);
+      console.error('❌ [OAuth] Error stack:', error.stack);
+    }
     return null;
   }
 }
@@ -75,6 +83,8 @@ export async function getValidProviderToken(
   userId: string
 ): Promise<string | null> {
   try {
+    console.log('[OAuth] Getting token for user_id:', userId);
+
     // Get user's current tokens
     const { data: user, error } = await supabase
       .from('users')
@@ -82,40 +92,61 @@ export async function getValidProviderToken(
       .eq('id', userId)
       .single();
 
-    if (error || !user) {
-      console.error('Error fetching user tokens:', error);
+    if (error) {
+      console.error('[OAuth] Error fetching user tokens:', error);
       return null;
     }
 
+    if (!user) {
+      console.error('[OAuth] No user found with id:', userId);
+      return null;
+    }
+
+    // Log token status for debugging
+    const needsRefresh = shouldRefreshToken(user.provider_token_expires_at);
+    console.log('[OAuth] Token needs refresh:', needsRefresh, '| Expires at:', user.provider_token_expires_at);
+
     // Check if we have a provider token
     if (!user.provider_token) {
-      console.log('User has no provider token');
+      console.error('❌ [OAuth] RETURN PATH: No provider token');
       return null;
     }
 
     // Check if token needs refresh
     if (!shouldRefreshToken(user.provider_token_expires_at)) {
       // Token is still valid
+      console.log('✅ [OAuth] RETURN PATH: Token valid, returning existing');
       return user.provider_token;
     }
 
     // Token needs refresh
-    console.log('Provider token expired or expiring soon, refreshing...');
+    console.log('🔄 [OAuth] Token expired/expiring, starting refresh...');
 
     if (!user.provider_refresh_token) {
-      console.error('No refresh token available for user');
+      console.error('❌ [OAuth] RETURN PATH: No refresh token');
       return null;
     }
 
     // Refresh the token
+    console.log('🔄 [OAuth] Calling refreshProviderToken...');
+
+    // Check if Google OAuth credentials are configured
+    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('❌ [OAuth] Google OAuth credentials not configured');
+      console.error('❌ [OAuth] Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env');
+      console.error('❌ [OAuth] User needs to re-authenticate');
+      return null;
+    }
+
     const refreshed = await refreshProviderToken(user.provider_refresh_token);
 
     if (!refreshed) {
-      console.error('Failed to refresh provider token');
+      console.error('❌ [OAuth] RETURN PATH: Refresh failed - user needs to re-authenticate');
       return null;
     }
 
     // Update user with new token
+    console.log('💾 [OAuth] Updating database with refreshed token...');
     const { error: updateError } = await supabase
       .from('users')
       .update({
@@ -126,11 +157,11 @@ export async function getValidProviderToken(
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Failed to update refreshed token:', updateError);
+      console.error('❌ [OAuth] RETURN PATH: DB update failed:', updateError);
       return null;
     }
 
-    console.log('Provider token refreshed successfully');
+    console.log('✅ [OAuth] RETURN PATH: Success! Token refreshed and saved');
     return refreshed.accessToken;
   } catch (error) {
     console.error('Error in getValidProviderToken:', error);
@@ -146,6 +177,8 @@ export async function getValidProviderTokenByGoogleId(
   googleId: string
 ): Promise<string | null> {
   try {
+    console.log('[OAuth] Looking up user by google_id:', googleId);
+
     // Get user by google_id
     const { data: user, error } = await supabase
       .from('users')
@@ -153,15 +186,27 @@ export async function getValidProviderTokenByGoogleId(
       .eq('google_id', googleId)
       .single();
 
-    if (error || !user) {
-      console.error('Error fetching user by google_id:', error);
+    if (error) {
+      console.error('[OAuth] Error fetching user by google_id:', error);
       return null;
     }
+
+    if (!user) {
+      console.error('[OAuth] No user found with google_id:', googleId);
+      return null;
+    }
+
+    console.log('[OAuth] User found:', {
+      userId: user.id,
+      hasToken: !!user.provider_token,
+      hasRefreshToken: !!user.provider_refresh_token,
+      expiresAt: user.provider_token_expires_at
+    });
 
     // Use the main function with user.id
     return await getValidProviderToken(supabase, user.id);
   } catch (error) {
-    console.error('Error in getValidProviderTokenByGoogleId:', error);
+    console.error('[OAuth] Error in getValidProviderTokenByGoogleId:', error);
     return null;
   }
 }

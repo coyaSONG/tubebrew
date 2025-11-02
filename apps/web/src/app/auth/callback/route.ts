@@ -25,19 +25,26 @@ export async function GET(request: Request) {
       if (provider_token) {
         const supabaseAdmin = createServiceClient();
 
+        // Google OAuth access tokens always expire in 3600 seconds (1 hour)
+        // Note: data.session.expires_at is the Supabase session expiration (24h+),
+        // NOT the provider token expiration, so we must calculate it separately
+        const providerTokenExpiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+
         // Update user with provider tokens
         const { error: updateError } = await supabaseAdmin
           .from('users')
           .update({
             provider_token,
             provider_refresh_token,
-            provider_token_expires_at: new Date(Date.now() + 3600 * 1000), // 1 hour from now
+            provider_token_expires_at: providerTokenExpiresAt,
             updated_at: new Date().toISOString(),
           })
           .eq('google_id', data.user.id);
 
         if (updateError) {
           console.error('Failed to save provider token:', updateError);
+        } else {
+          console.log('Provider tokens saved successfully');
         }
       }
     }

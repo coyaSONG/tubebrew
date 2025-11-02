@@ -390,8 +390,6 @@ export class DBUtils {
   }
 }
 
-// Export singleton instance
-export const db = new DBUtils();
-
 // Export database types and utilities
 export * from './types';
+export * from './oauth-utils';
