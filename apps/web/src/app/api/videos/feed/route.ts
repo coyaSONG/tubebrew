@@ -154,9 +154,42 @@ export async function GET(request: NextRequest) {
       .eq('user_id', userId)
       .single();
 
-    // Enrich videos with user-specific data
+    // Convert snake_case to camelCase and enrich videos with user-specific data
     const enrichedVideos = videos?.map((video) => ({
-      ...video,
+      id: video.id,
+      youtubeId: video.youtube_id,
+      channelId: video.channel_id,
+      title: video.title,
+      description: video.description,
+      thumbnailUrl: video.thumbnail_url,
+      duration: video.duration,
+      publishedAt: video.published_at,
+      viewCount: video.view_count,
+      likeCount: video.like_count,
+      hasCaptions: video.has_captions,
+      createdAt: video.created_at,
+      updatedAt: video.updated_at,
+      channel: video.channel ? {
+        id: video.channel.id,
+        youtubeId: video.channel.youtube_id,
+        title: video.channel.title,
+        description: video.channel.description,
+        thumbnailUrl: video.channel.thumbnail_url,
+        category: video.channel.category,
+        subscriberCount: video.channel.subscriber_count,
+        videoCount: video.channel.video_count,
+        createdAt: video.channel.created_at,
+        updatedAt: video.channel.updated_at,
+      } : undefined,
+      summaries: video.summaries?.map((s: any) => ({
+        id: s.id,
+        videoId: s.video_id,
+        level: s.level,
+        content: s.content,
+        model: s.model,
+        tokensUsed: s.tokens_used,
+        createdAt: s.created_at,
+      })),
       isBookmarked: bookmarkedIds.has(video.id),
       isWatched: watchedIds.has(video.id),
       userSummaryLevel: settings?.summary_level || 2,
