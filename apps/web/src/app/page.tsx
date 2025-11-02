@@ -1,21 +1,22 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import { VideoFeedClient } from './(dashboard)/components/video-feed-client';
 
 export default async function HomePage() {
   const supabase = await createClient();
 
-  // 1. 사용자 인증 확인 (getUser()는 서버에서 검증)
+  // 1. Check user authentication
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
 
-  // 로그인하지 않은 경우 로그인 페이지로
+  // Redirect to login if not authenticated
   if (authError || !user) {
     redirect('/auth/signin');
   }
 
-  // 2. 사용자 정보 조회
+  // 2. Get user data
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('id')
@@ -23,38 +24,42 @@ export default async function HomePage() {
     .single();
 
   if (userError || !userData) {
-    // 사용자 레코드가 없으면 온보딩으로
+    // User record doesn't exist, redirect to onboarding
     redirect('/onboarding');
   }
 
-  // 3. 채널 설정 여부 확인
-  const { data: userChannels, count } = await supabase
+  // 3. Check if user has channels set up
+  const { count } = await supabase
     .from('user_channels')
     .select('channel_id', { count: 'exact' })
-    .eq('user_id', userData.id);
+    .eq('user_id', userData.id)
+    .eq('is_hidden', false);
 
-  // 채널이 없으면 온보딩으로
+  // Redirect to onboarding if no channels
   if (!count || count === 0) {
     redirect('/onboarding');
   }
 
-  // 4. 메인 대시보드 렌더링 (임시)
+  // 4. Get user settings
+  const { data: settings } = await supabase
+    .from('user_settings')
+    .select('summary_level')
+    .eq('user_id', userData.id)
+    .single();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center max-w-2xl px-4">
-        <h1 className="text-4xl font-bold mb-4">TubeBrew</h1>
-        <p className="text-lg text-muted-foreground mb-8">
-          환영합니다! 채널 설정이 완료되었습니다.
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Your personalized video feed with AI summaries
         </p>
-        <p className="text-sm text-muted-foreground">
-          대시보드 UI는 곧 구현될 예정입니다.
-        </p>
-        <div className="mt-8">
-          <p className="text-sm">
-            설정된 채널 수: <strong>{count}</strong>
-          </p>
-        </div>
       </div>
+
+      <VideoFeedClient
+        userId={userData.id}
+        defaultSummaryLevel={settings?.summary_level || 2}
+      />
     </div>
   );
 }
