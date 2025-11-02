@@ -35,6 +35,9 @@ export async function processSummaryGeneration(job: Job<SummaryGenerationJob>) {
     }
 
     // 3. Get user for provider token
+    if (!userId) {
+      throw new Error('userId is required for summary generation');
+    }
     const user = await dbUtils.getUser(userId);
     if (!user || !user.provider_token) {
       throw new Error('User not found or provider token missing');
@@ -49,8 +52,11 @@ export async function processSummaryGeneration(job: Job<SummaryGenerationJob>) {
     let transcript: string;
 
     try {
-      const captions = await youtube.getCaptions(videoId);
-      transcript = captions;
+      const captionsData = await youtube.getCaptions(videoId);
+      if (!captionsData) {
+        throw new Error('No captions available');
+      }
+      transcript = captionsData.fullText;
       job.log(`Retrieved transcript (${transcript.length} characters)`);
 
       // Store transcript

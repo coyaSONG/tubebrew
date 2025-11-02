@@ -1,13 +1,20 @@
 import Fastify from 'fastify';
-import { Worker, Queue, QueueScheduler } from 'bullmq';
+import { Worker, Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { supabaseAdmin, DBUtils } from '@tubebrew/db';
 import { processVideoCollection } from './jobs/video-collection';
 import { processSummaryGeneration } from './jobs/summary-generation';
+import { websubRoutes } from './routes/websub';
+import { WebSubManager } from './services/websub-manager';
 
-const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+const redisConnection = new Redis(
+  process.env.NODE_ENV === 'production'
+    ? process.env.REDIS_URL!
+    : process.env.REDIS_URL || 'redis://localhost:6379',
+  {
+    maxRetriesPerRequest: null,
+  }
+);
 
 // Initialize Fastify server
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -32,6 +39,10 @@ const fastify = Fastify({
 // Use Fastify's logger
 const logger = fastify.log;
 const dbUtils = new DBUtils(supabaseAdmin);
+
+// Initialize WebSub manager
+// @ts-ignore - Fastify logger is compatible with pino Logger interface
+const websubManager = new WebSubManager(logger);
 
 // Health check endpoint
 fastify.get('/health', async () => {
@@ -62,13 +73,26 @@ fastify.post('/trigger-collection', async () => {
 const videoCollectionQueue = new Queue('video-collection', { connection: redisConnection });
 const summaryGenerationQueue = new Queue('summary-generation', { connection: redisConnection });
 
-// Workers
+// Make queues available to routes via fastify instance
+declare module 'fastify' {
+  interface FastifyInstance {
+    videoCollectionQueue: Queue;
+    summaryGenerationQueue: Queue;
+  }
+}
+
+fastify.decorate('videoCollectionQueue', videoCollectionQueue);
+fastify.decorate('summaryGenerationQueue', summaryGenerationQueue);
+
+// Workers with optimized settings for WebSub
 const videoCollectionWorker = new Worker(
   'video-collection',
   processVideoCollection,
   {
     connection: redisConnection,
-    concurrency: 3,
+    concurrency: 2, // Reduced from 3
+    // Note: drainDelay is removed as it's not in the current BullMQ version
+    // We'll optimize polling through reduced scheduling frequency instead
   }
 );
 
@@ -158,22 +182,48 @@ async function scheduleVideoCollection() {
 // Start server
 const start = async () => {
   try {
+    // Register WebSub routes
+    await fastify.register(websubRoutes);
+
     const port = parseInt(process.env.PORT || '3001', 10);
     await fastify.listen({ port, host: '0.0.0.0' });
     logger.info(`Worker server listening on port ${port}`);
 
-    // Run initial collection after startup (1 minute delay)
+    // Get callback URL from environment
+    const callbackUrl = process.env.WEBSUB_CALLBACK_URL || `http://localhost:${port}/websub/callback`;
+    logger.info({ callbackUrl }, 'WebSub callback URL configured');
+
+    // Subscribe to all channels on startup (after 2 minute delay)
     setTimeout(async () => {
-      logger.info('Running initial video collection');
-      await scheduleVideoCollection();
-    }, 60000);
+      logger.info('Subscribing to all user channels via WebSub');
+      await websubManager.subscribeToAllChannels(callbackUrl);
+    }, 120000);
 
-    // Schedule video collection every 15 minutes
+    // Run initial RSS collection as fallback (5 minute delay)
+    setTimeout(async () => {
+      logger.info('Running initial fallback RSS collection');
+      await scheduleVideoCollection();
+    }, 300000);
+
+    // Schedule fallback RSS polling once per day (for WebSub failure protection)
     setInterval(async () => {
+      logger.info('Running daily fallback RSS collection');
       await scheduleVideoCollection();
-    }, 15 * 60 * 1000);
+    }, 24 * 60 * 60 * 1000);
 
-    logger.info('Video collection scheduler started (15 minute interval)');
+    // Renew expiring WebSub subscriptions daily
+    setInterval(async () => {
+      logger.info('Renewing expiring WebSub subscriptions');
+      await websubManager.renewExpiringSubscriptions(callbackUrl);
+    }, 24 * 60 * 60 * 1000);
+
+    // Retry failed WebSub subscriptions every 6 hours
+    setInterval(async () => {
+      logger.info('Retrying failed WebSub subscriptions');
+      await websubManager.retryFailedSubscriptions(callbackUrl);
+    }, 6 * 60 * 60 * 1000);
+
+    logger.info('WebSub scheduler started (daily RSS fallback, subscription renewal)');
   } catch (err) {
     logger.error(err);
     process.exit(1);

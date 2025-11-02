@@ -1,10 +1,24 @@
-import { Job } from 'bullmq';
+import { Job, Queue } from 'bullmq';
+import Redis from 'ioredis';
 import { YouTubeAPI } from '@tubebrew/youtube';
 import { DBUtils, supabaseAdmin } from '@tubebrew/db';
-import type { VideoProcessingJob } from '@tubebrew/types';
+import type { VideoProcessingJob, SummaryGenerationJob } from '@tubebrew/types';
 
 // Use admin client to bypass RLS
 const db = new DBUtils(supabaseAdmin);
+
+// Redis connection for queue access
+const redisConnection = new Redis(
+  process.env.NODE_ENV === 'production'
+    ? process.env.REDIS_URL!
+    : process.env.REDIS_URL || 'redis://localhost:6379',
+  { maxRetriesPerRequest: null }
+);
+
+// Summary generation queue
+const summaryQueue = new Queue<SummaryGenerationJob>('summary-generation', {
+  connection: redisConnection,
+});
 
 /**
  * Video Collection Job Handler
@@ -17,6 +31,9 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
 
   try {
     // 1. Get user's provider token for YouTube API
+    if (!userId) {
+      throw new Error('userId is required for video collection');
+    }
     const user = await db.getUser(userId);
     if (!user || !user.provider_token) {
       throw new Error('User not found or provider token missing');
@@ -53,7 +70,7 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
 
           await db.updateVideo(existing.id, {
             view_count: videoDetails.viewCount,
-            updated_at: new Date(),
+            updated_at: new Date().toISOString(),
           });
           updatedVideos++;
         } else {
@@ -68,20 +85,20 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
             title: videoDetails.title,
             description: videoDetails.description || '',
             thumbnail_url: videoDetails.thumbnail,
-            published_at: new Date(videoDetails.publishedAt),
+            published_at: new Date(videoDetails.publishedAt).toISOString(),
             duration,
             view_count: videoDetails.viewCount || 0,
           });
           newVideos++;
 
           // Add to summary generation queue
-          await job.queue.add(
-            'summary-generation',
+          await summaryQueue.add(
+            `summary-${videoId}`,
             {
               videoId,
               channelId,
               userId,
-              priority: 'normal',
+              priority: 'normal' as const,
             },
             {
               attempts: 3,

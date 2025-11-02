@@ -109,16 +109,17 @@ export interface DashboardVideo extends VideoWithChannel {
 
 // Job Queue Types
 export interface VideoProcessingJob {
-  videoId: string;
-  youtubeId: string;
-  channelId: string;
-  forceTranscription?: boolean;
+  userId: string | null; // null for WebSub-triggered jobs
+  channelId: string; // YouTube channel ID
+  videoId?: string; // Optional specific video ID (for WebSub)
+  source?: 'websub' | 'rss'; // Track notification source
 }
 
 export interface SummaryGenerationJob {
-  videoId: string;
-  transcriptId: string;
-  levels: SummaryLevel[];
+  videoId: string; // YouTube video ID
+  channelId: string; // YouTube channel ID
+  userId: string | null; // null for WebSub-triggered jobs
+  priority?: 'normal' | 'high' | 'low';
 }
 
 // API Response Types
