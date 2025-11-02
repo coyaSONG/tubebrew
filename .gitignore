@@ -36,3 +36,4 @@ yarn-error.log*
 # development
 .serena/
 claudedocs/
+.playwright-mcp/
