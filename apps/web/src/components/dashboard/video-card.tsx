@@ -4,44 +4,84 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Bookmark, Check, Eye } from 'lucide-react';
-import type { DashboardVideo } from '@tubebrew/types';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Bookmark,
+  BookmarkCheck,
+  Play,
+  Clock,
+  Eye,
+  ThumbsUp,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
+import type { DashboardVideo, SummaryLevel } from '@tubebrew/types';
 
 interface VideoCardProps {
   video: DashboardVideo;
-  summaryLevel?: 1 | 2 | 3 | 4;
+  summaryLevel?: SummaryLevel;
+  relevanceScore?: number;
   onBookmark?: (videoId: string, action: 'add' | 'remove') => void;
   onWatch?: (videoId: string) => void;
 }
 
 export function VideoCard({
   video,
-  summaryLevel = 2,
+  summaryLevel: initialSummaryLevel = 2,
+  relevanceScore,
   onBookmark,
   onWatch,
 }: VideoCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(video.isBookmarked);
   const [isWatched, setIsWatched] = useState(video.isWatched);
+  const [summaryLevel, setSummaryLevel] =
+    useState<SummaryLevel>(initialSummaryLevel);
+  const [showFullSummary, setShowFullSummary] = useState(false);
 
-  const summary = video.summaries?.find((s) => s.level === summaryLevel);
-  const thumbnailUrl = video.thumbnailUrl || video.channel?.thumbnailUrl || '';
-
-  const handleBookmark = async () => {
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     const action = isBookmarked ? 'remove' : 'add';
     setIsBookmarked(!isBookmarked);
     onBookmark?.(video.id, action);
   };
 
-  const handleWatch = async () => {
+  const handleWatch = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsWatched(true);
     onWatch?.(video.id);
   };
 
+  const cycleSummaryLevel = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const levels: SummaryLevel[] = [1, 2, 3, 4];
+    const currentIndex = levels.indexOf(summaryLevel);
+    const nextIndex = (currentIndex + 1) % levels.length;
+    setSummaryLevel(levels[nextIndex]);
+  };
+
+  const getRelevanceColor = (score: number) => {
+    if (score >= 90) return 'bg-green-500';
+    if (score >= 70) return 'bg-blue-500';
+    if (score >= 50) return 'bg-yellow-500';
+    return 'bg-gray-500';
+  };
+
   const formatDuration = (seconds: number) => {
+    if (!seconds) return '0:00';
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     if (hours > 0) {
-      return `${hours}:${(minutes % 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+      return `${hours}:${(minutes % 60).toString().padStart(2, '0')}:${(
+        seconds % 60
+      )
+        .toString()
+        .padStart(2, '0')}`;
     }
     return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`;
   };
@@ -69,100 +109,244 @@ export function VideoCard({
     return `${Math.floor(months / 12)}년 전`;
   };
 
+  const formatViewCount = (count: number) => {
+    if (count >= 1000000) {
+      return `${(count / 1000000).toFixed(1)}M`;
+    }
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
+  };
+
+  const summary = video.summaries?.find((s) => s.level === summaryLevel);
+  const thumbnailUrl = video.thumbnailUrl || video.channel?.thumbnailUrl || '';
+
   return (
     <Card
-      className={`overflow-hidden transition-all hover:shadow-lg ${
-        isWatched ? 'opacity-60' : ''
-      }`}
+      className="group relative overflow-hidden bg-card border-border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Thumbnail */}
-      <div className="relative aspect-video bg-muted">
-        {thumbnailUrl && (
-          <Image
-            src={thumbnailUrl}
-            alt={video.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        )}
-        {video.duration && (
-          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-            {formatDuration(video.duration)}
-          </div>
-        )}
-        {isWatched && (
-          <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-1">
-            <Check className="w-4 h-4" />
-          </div>
-        )}
-      </div>
+      <div className="relative">
+        {/* Thumbnail */}
+        <div className="relative aspect-video overflow-hidden bg-muted">
+          {thumbnailUrl && (
+            <Image
+              src={thumbnailUrl}
+              alt={video.title}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              loading="lazy"
+            />
+          )}
 
-      {/* Content */}
-      <div className="p-4 space-y-3">
-        {/* Channel & Title */}
-        <div>
-          <h3 className="font-medium line-clamp-2 text-sm mb-1">
-            {video.title}
-          </h3>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{video.channel?.title}</span>
-            <span>•</span>
-            <span>{formatTimeAgo(video.publishedAt)}</span>
-          </div>
-          {video.channel?.category && (
-            <div className="mt-1">
-              <span className="inline-block text-xs bg-muted px-2 py-0.5 rounded-full">
-                {video.channel.category}
-              </span>
+          {/* Duration Badge */}
+          {video.duration && (
+            <Badge className="absolute bottom-2 right-2 bg-black/80 text-white border-0 font-semibold">
+              {formatDuration(video.duration)}
+            </Badge>
+          )}
+
+          {/* Relevance Score */}
+          {relevanceScore && relevanceScore > 70 && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/80 text-white px-2 py-1 rounded-md text-xs font-medium">
+              <Sparkles className="w-3 h-3" />
+              {relevanceScore}%
             </div>
           )}
+
+          {/* Watched Overlay */}
+          {isWatched && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="bg-primary text-primary-foreground rounded-full p-3">
+                <Eye className="w-6 h-6" />
+              </div>
+            </div>
+          )}
+
+          {/* Hover Play Button */}
+          <div
+            className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity duration-300 ${
+              isHovered && !isWatched ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <a
+              href={`https://www.youtube.com/watch?v=${video.youtubeId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                handleWatch(e);
+              }}
+            >
+              <Button
+                size="lg"
+                className="rounded-full w-16 h-16 bg-primary hover:bg-primary/90 transition-transform duration-300 hover:scale-110"
+              >
+                <Play className="w-8 h-8 fill-current" />
+              </Button>
+            </a>
+          </div>
         </div>
 
-        {/* Summary */}
-        {summary && (
-          <div className="text-xs bg-muted/50 p-3 rounded-md space-y-1">
-            <div className="font-medium text-muted-foreground">
-              📝 AI Summary (Level {summaryLevel})
+        {/* Content */}
+        <div className="p-4 space-y-3">
+          {/* Channel Info */}
+          <div className="flex items-start gap-3">
+            <Avatar className="w-10 h-10 border-2 border-border">
+              <AvatarImage
+                src={video.channel?.thumbnailUrl}
+                alt={video.channel?.title}
+              />
+              <AvatarFallback>
+                {video.channel?.title?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-foreground line-clamp-2 leading-tight mb-1 group-hover:text-primary transition-colors text-sm">
+                {video.title}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {video.channel?.title}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                {video.viewCount && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3 h-3" />
+                      {formatViewCount(video.viewCount)} views
+                    </span>
+                    <span>•</span>
+                  </>
+                )}
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatTimeAgo(video.publishedAt)}
+                </span>
+              </div>
+              {video.channel?.category && (
+                <div className="mt-1">
+                  <Badge variant="outline" className="text-xs">
+                    {video.channel.category}
+                  </Badge>
+                </div>
+              )}
             </div>
-            <p className="line-clamp-3 text-foreground/90">{summary.content}</p>
+          </div>
+
+          {/* AI Summary */}
+          {summary && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    AI Summary
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-2 text-xs hover:bg-primary/10"
+                    onClick={cycleSummaryLevel}
+                  >
+                    Level {summaryLevel}
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowFullSummary(!showFullSummary);
+                  }}
+                >
+                  {showFullSummary ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+
+              <div
+                className={`text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 transition-all duration-300 ${
+                  showFullSummary ? 'line-clamp-none' : 'line-clamp-2'
+                }`}
+              >
+                {summary.content}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <Button
+              variant={isBookmarked ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 transition-all duration-300 text-xs"
+              onClick={handleBookmark}
+            >
+              {isBookmarked ? (
+                <>
+                  <BookmarkCheck className="w-3 h-3 mr-1" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Bookmark className="w-3 h-3 mr-1" />
+                  Save
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant={isWatched ? 'secondary' : 'outline'}
+              size="sm"
+              className="flex-1 transition-all duration-300 text-xs"
+              onClick={handleWatch}
+              disabled={isWatched}
+            >
+              {isWatched ? (
+                <>
+                  <Eye className="w-3 h-3 mr-1" />
+                  Watched
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 mr-1" />
+                  Watch
+                </>
+              )}
+            </Button>
+
+            <a
+              href={`https://www.youtube.com/watch?v=${video.youtubeId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button variant="ghost" size="sm" className="px-3">
+                <ThumbsUp className="w-3 h-3" />
+              </Button>
+            </a>
+          </div>
+        </div>
+
+        {/* Relevance Indicator Bar */}
+        {relevanceScore && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
+            <div
+              className={`h-full transition-all duration-500 ${getRelevanceColor(
+                relevanceScore
+              )}`}
+              style={{ width: `${relevanceScore}%` }}
+            />
           </div>
         )}
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            variant={isBookmarked ? 'default' : 'outline'}
-            size="sm"
-            onClick={handleBookmark}
-            className="flex-1 text-xs"
-          >
-            <Bookmark
-              className={`w-3 h-3 mr-1 ${isBookmarked ? 'fill-current' : ''}`}
-            />
-            {isBookmarked ? 'Saved' : 'Save'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleWatch}
-            disabled={isWatched}
-            className="flex-1 text-xs"
-          >
-            <Eye className="w-3 h-3 mr-1" />
-            {isWatched ? 'Watched' : 'Mark Read'}
-          </Button>
-        </div>
-
-        {/* Open on YouTube */}
-        <a
-          href={`https://www.youtube.com/watch?v=${video.youtubeId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-primary hover:underline block text-center pt-1"
-        >
-          Watch on YouTube →
-        </a>
       </div>
     </Card>
   );
