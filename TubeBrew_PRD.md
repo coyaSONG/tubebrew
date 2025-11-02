@@ -97,24 +97,23 @@ TubeBrew는 YouTube 구독 채널이 많은 사용자들이 새로 업로드되�
 
 #### 4.2.1 신규 영상 감지 (P0)
 
-**Phase 1 (MVP) 전략:**
-**방법 1: RSS Feed** - Primary
-- 채널 RSS 피드 체크 (`https://www.youtube.com/feeds/videos.xml?channel_id={ID}`)
-- 15분 간격 폴링
-- 최신 15개 영상 조회 (충분)
-- API 할당량 불필요
-- 구현 간단, 디버깅 용이
+**현재 구현 상태 (2025-11-02 업데이트):**
 
-**방법 2: YouTube Data API Polling** - Fallback
-- RSS 실패 시 대체
-- API 할당량 관리 필요
-
-**Phase 2 이후:**
-**방법 3: YouTube PubSubHubbub (WebSub)** - Real-time
+**방법 1: YouTube PubSubHubbub (WebSub)** - Primary ✅ 구현 완료
 - 채널별 webhook 구독
 - 실시간 푸시 알림 수신 (<1분 지연)
-- 서버 공개 URL 필요
-- RSS와 병행 (redundancy)
+- Redis 사용량 90-95% 감소
+- 서버 공개 URL 필요 (프로덕션 배포 시)
+
+**방법 2: RSS Feed** - Fallback
+- 채널 RSS 피드 체크 (`https://www.youtube.com/feeds/videos.xml?channel_id={ID}`)
+- 일일 1회 폴링 (24시간 간격)
+- WebSub 실패 시 안전장치
+- 최신 15개 영상 조회
+- API 할당량 불필요
+
+**방법 3: YouTube Data API Polling** - 미사용
+- RSS 및 WebSub 모두 실패 시에만 수동 대체
 
 #### 4.2.2 자막/트랜스크립트 획득 (P0)
 **우선순위 전략**:
@@ -648,12 +647,13 @@ DB 저장
 - [ ] AI 기반 채널 분류 (LiteLLM + OpenRouter)
 - [ ] 카테고리 편집 UI
 
-#### Week 5-6: 영상 수집 파이프라인
-- [ ] RSS 피드 폴링 구현 (시작점)
-- [ ] YouTube API로 자막 수집
-- [ ] Whisper API 트랜스크립션 (백업)
-- [ ] Worker 서버 구축 (Railway)
-- [ ] BullMQ 작업 큐 설정
+#### Week 5-6: 영상 수집 파이프라인 ✅ 완료
+- [x] RSS 피드 폴링 구현 (일일 1회 fallback)
+- [x] WebSub (PubSubHubbub) 실시간 알림 구현 (2025-11-02)
+- [x] YouTube API로 자막 수집
+- [x] Whisper API 트랜스크립션 (백업)
+- [x] Worker 서버 구축 (Fastify)
+- [x] BullMQ 작업 큐 설정
 
 #### Week 7-8: AI 요약
 - [ ] LiteLLM 통합

@@ -204,7 +204,10 @@ pnpm dev
     - 자막/트랜스크립트 추출 및 저장
     - 4단계 요약 레벨 생성 (한줄, 3줄, 챕터, 전문)
     - 모델 fallback 시스템
-  - [x] 자동 스케줄러 (15분 간격 RSS 폴링)
+  - [x] **WebSub 실시간 알림 시스템** (2025-11-02)
+    - WebSub (PubSubHubbub) 구현으로 YouTube 영상 업로드 즉시 감지
+    - Redis 사용량 90-95% 감소 (6.48M/month → 300K-600K/month)
+    - RSS 폴링을 일일 1회 fallback으로 변경 (24시간 간격)
   - [x] 헬스체크 및 통계 엔드포인트
 - [x] **데이터베이스 유틸리티 확장**
   - [x] `getUser()` - 사용자 조회
@@ -235,7 +238,11 @@ pnpm dev
 - [ ] 북마크 및 시청 기록 UI
 
 ### Phase 2: 기능 확장
-- [ ] WebSub 실시간 알림
+- [x] **WebSub 실시간 알림** (✅ 완료 - 2025-11-02)
+  - 데이터베이스 마이그레이션 완료
+  - WebSub routes 및 manager 구현
+  - RSS polling을 24시간 fallback으로 변경
+  - 구독 갱신 및 재시도 스케줄러 구현
 - [ ] 검색 기능
 - [ ] 통계 대시보드
 - [ ] 모바일 최적화
@@ -326,7 +333,7 @@ pnpm dev
 
 **Quota 절약 팁**:
 - RSS 피드는 최대 15개 영상만 반환
-- 폴링 간격을 15분 이상으로 유지
+- WebSub 실시간 알림 사용 (일일 1회 RSS fallback)
 - 온보딩 시에만 YouTube Data API 사용
 
 ## 🤝 기여
@@ -370,11 +377,13 @@ Private - 개인 프로젝트
    - 데이터베이스 저장
 
 3. **백엔드 자동화 시스템**
-   - 15분마다 RSS 피드 폴링
+   - **WebSub 실시간 알림**: YouTube 영상 업로드 시 즉시 감지
+   - **RSS 폴링 Fallback**: 일일 1회 (24시간 간격)
    - 새 영상 자동 감지 및 저장
    - AI 요약 자동 생성 (4단계 레벨)
    - BullMQ 작업 큐로 병렬 처리
    - 실패 시 자동 재시도
+   - **Redis 사용량 최적화**: 90-95% 감소 (Free Tier 준수)
    - **현재 수집 현황: 1,380개 비디오 (Cole Medin, ArjanCodes, Web Dev Simplified 등)**
 
 ### 🚧 개발 필요 (다음 주)
