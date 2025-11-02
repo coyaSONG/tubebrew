@@ -14,12 +14,14 @@
     "@tubebrew/types": "workspace:*",
     "@tubebrew/youtube": "workspace:*",
     "bullmq": "^5.35.3",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.6.1",
     "fastify": "^5.2.0",
+    "googleapis": "^144.0.0",
     "ioredis": "^5.4.2",
     "pino": "^9.5.0",
     "pino-pretty": "^13.0.0",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "youtubei.js": "^16.0.1"
   },
   "devDependencies": {
     "@types/node": "^20",

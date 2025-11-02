@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      userData = { data: newUser, error: null };
+      userData = { data: newUser, error: null, count: null, status: 200, statusText: 'OK' };
     }
 
     const userId = userData.data!.id;
@@ -103,19 +103,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. user_channels 관계 저장 - Service Role로 RLS 우회
-    const userChannels = channels.map((ch) => {
-      const channelId = insertedChannels?.find(
-        (ic) => ic.youtube_id === ch.youtubeId
-      )?.id;
+    const userChannels = channels
+      .map((ch) => {
+        const channelId = insertedChannels?.find(
+          (ic) => ic.youtube_id === ch.youtubeId
+        )?.id;
 
-      return {
-        user_id: userId,
-        channel_id: channelId,
-        custom_category: ch.customCategory || null,
-        is_hidden: ch.isHidden || false,
-        notification_enabled: !ch.isHidden,
-      };
-    });
+        if (!channelId) return null;
+
+        return {
+          user_id: userId,
+          channel_id: channelId,
+          custom_category: ch.customCategory || null,
+          is_hidden: ch.isHidden || false,
+          notification_enabled: !ch.isHidden,
+        };
+      })
+      .filter((uc): uc is NonNullable<typeof uc> => uc !== null);
 
     const { error: userChannelError } = await supabaseService
       .from('user_channels')

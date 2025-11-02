@@ -78,6 +78,10 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
           const videoDetails = await youtube.getVideoDetails(videoId);
           const duration = YouTubeAPI.parseDuration(videoDetails.duration);
 
+          // Check if captions are available (quota-free)
+          const captions = await youtube.getCaptions(videoId);
+          const hasCaptions = captions !== null;
+
           // Create new video record
           await db.createVideo({
             youtube_id: videoId,
@@ -88,26 +92,32 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
             published_at: new Date(videoDetails.publishedAt).toISOString(),
             duration,
             view_count: videoDetails.viewCount || 0,
+            has_captions: hasCaptions,
           });
           newVideos++;
 
-          // Add to summary generation queue
-          await summaryQueue.add(
-            `summary-${videoId}`,
-            {
-              videoId,
-              channelId,
-              userId,
-              priority: 'normal' as const,
-            },
-            {
-              attempts: 3,
-              backoff: {
-                type: 'exponential',
-                delay: 2000,
+          // Only add to summary generation queue if captions are available
+          if (hasCaptions) {
+            await summaryQueue.add(
+              `summary-${videoId}`,
+              {
+                videoId,
+                channelId,
+                userId,
+                priority: 'normal' as const,
               },
-            }
-          );
+              {
+                attempts: 3,
+                backoff: {
+                  type: 'exponential',
+                  delay: 2000,
+                },
+              }
+            );
+            job.log(`Added video ${videoId} to summary queue (has captions)`);
+          } else {
+            job.log(`Skipped summary for video ${videoId} (no captions available)`);
+          }
         }
       } catch (err) {
         job.log(`Error processing video ${rssVideo.videoId}: ${(err as Error).message}`);

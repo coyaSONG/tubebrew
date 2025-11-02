@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { VideoGrid } from '@/components/dashboard/video-grid';
+import { VideoGridSkeleton } from '@/components/dashboard/video-card-skeleton';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Video, RefreshCcw } from 'lucide-react';
 import type { DashboardVideo } from '@tubebrew/types';
 
 interface VideoFeedClientProps {
@@ -156,10 +157,30 @@ export function VideoFeedClient({
 
       {/* Video Grid */}
       {isLoading && page === 1 ? (
-        <div className="flex justify-center py-12">
-          <div className="text-center space-y-3">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-            <p className="text-sm text-muted-foreground">Loading videos...</p>
+        <VideoGridSkeleton count={6} />
+      ) : videos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+          <div className="bg-muted rounded-full p-6 mb-6">
+            <Video className="w-12 h-12 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">No videos found</h3>
+          <p className="text-muted-foreground max-w-md mb-6">
+            {category
+              ? `No videos in "${category}" category. Try selecting a different category.`
+              : "We couldn't find any videos. Try adjusting your filters or check back later."}
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCategory(null);
+                setSortBy('newest');
+                loadVideos(1, true);
+              }}
+            >
+              <RefreshCcw className="w-4 h-4 mr-2" />
+              Reset Filters
+            </Button>
           </div>
         </div>
       ) : (

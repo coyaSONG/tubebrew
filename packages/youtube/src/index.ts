@@ -1,6 +1,6 @@
 import { google, youtube_v3 } from 'googleapis';
 import Parser from 'rss-parser';
-import { YoutubeTranscript } from 'youtube-transcript';
+import { Innertube } from 'youtubei.js';
 
 export class YouTubeAPI {
   private youtube: youtube_v3.Youtube;
@@ -183,20 +183,47 @@ export class YouTubeAPI {
 
   /**
    * Get video captions/transcript
-   * Does not use API quota (uses youtube-transcript library)
+   * Does not use API quota (uses youtubei.js library)
    */
   async getCaptions(videoId: string) {
     try {
-      const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+      const yt = await Innertube.create();
+      const info = await yt.getInfo(videoId);
+
+      // Try to get transcript
+      const transcriptInfo = await info.getTranscript();
+
+      if (!transcriptInfo) {
+        return null;
+      }
+
+      const transcript = transcriptInfo.transcript;
+      const segments = transcript?.content?.body?.initial_segments;
+
+      // Return null if no segments or empty
+      if (!segments || segments.length === 0) {
+        return null;
+      }
+
+      // Extract text from segments
+      const fullText = segments
+        .map((seg: any) => seg.snippet.text)
+        .join(' ')
+        .trim();
+
+      // Return null if the combined text is empty
+      if (!fullText) {
+        return null;
+      }
 
       return {
         videoId,
-        captions: transcript.map((item) => ({
-          text: item.text,
-          offset: item.offset,
-          duration: item.duration,
+        captions: segments.map((seg: any) => ({
+          text: seg.snippet.text,
+          offset: seg.start_ms,
+          duration: seg.end_ms - seg.start_ms,
         })),
-        fullText: transcript.map((item) => item.text).join(' '),
+        fullText,
       };
     } catch (error) {
       console.error('Error fetching captions:', error);

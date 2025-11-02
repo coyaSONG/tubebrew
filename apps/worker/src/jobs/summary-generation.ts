@@ -34,21 +34,12 @@ export async function processSummaryGeneration(job: Job<SummaryGenerationJob>) {
       return { success: true, skipped: true, reason: 'already_exists' };
     }
 
-    // 3. Get user for provider token
-    if (!userId) {
-      throw new Error('userId is required for summary generation');
-    }
-    const user = await dbUtils.getUser(userId);
-    if (!user || !user.provider_token) {
-      throw new Error('User not found or provider token missing');
-    }
-
-    // 4. Get channel for category context
+    // 3. Get channel for category context
     const channel = await dbUtils.getChannelByYouTubeId(channelId);
     const channelCategory = channel?.category || 'general';
 
-    // 5. Get video transcript
-    const youtube = new YouTubeAPI(user.provider_token);
+    // 4. Get video transcript (no auth needed with youtubei.js)
+    const youtube = new YouTubeAPI();
     let transcript: string;
 
     try {
@@ -64,13 +55,13 @@ export async function processSummaryGeneration(job: Job<SummaryGenerationJob>) {
         .from('transcripts')
         .select('id')
         .eq('video_id', video.id)
-        .eq('language', 'ko')
+        .eq('language', 'auto')
         .single();
 
       if (!existingTranscript) {
         await supabaseAdmin.from('transcripts').insert({
           video_id: video.id,
-          language: 'ko',
+          language: 'auto',
           content: transcript,
         });
       }
@@ -104,7 +95,7 @@ export async function processSummaryGeneration(job: Job<SummaryGenerationJob>) {
           level,
           content: summary.content,
           tokens_used: summary.tokensUsed,
-          model_used: summary.model,
+          model: summary.model,
         });
 
         results.push({
