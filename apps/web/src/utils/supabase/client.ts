@@ -42,6 +42,30 @@ export function createClient() {
 }
 
 /**
+ * Get the redirect URL for OAuth
+ */
+function getRedirectUrl() {
+  // In production on Vercel, use NEXT_PUBLIC_APP_URL or VERCEL_URL
+  if (process.env.NODE_ENV === 'production') {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL
+
+    if (appUrl) {
+      return appUrl
+    }
+
+    if (vercelUrl) {
+      return `https://${vercelUrl}`
+    }
+
+    throw new Error('Missing NEXT_PUBLIC_APP_URL for production deployment')
+  }
+
+  // Development fallback
+  return 'http://localhost:3000'
+}
+
+/**
  * YouTube API 권한을 포함한 Google OAuth 로그인
  */
 export async function signInWithGoogle() {
@@ -50,7 +74,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
+      redirectTo: `${getRedirectUrl()}/auth/callback`,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
