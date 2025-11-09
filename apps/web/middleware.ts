@@ -29,13 +29,9 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Auth callback 경로는 getUser() 호출 없이 바로 통과 (OAuth 처리 중)
-  if (request.nextUrl.pathname.startsWith('/auth/callback')) {
-    return supabaseResponse
-  }
-
   // IMPORTANT: 반드시 getUser() 호출 (세션 갱신 트리거)
   // Do not run code between createServerClient and supabase.auth.getUser()
+  // DO NOT skip this for ANY route, including /auth/callback
   const {
     data: { user },
   } = await supabase.auth.getUser()
