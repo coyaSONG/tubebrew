@@ -43,26 +43,21 @@ export function createClient() {
 
 /**
  * Get the redirect URL for OAuth
+ * Following Supabase official pattern: https://supabase.com/docs/guides/auth/redirect-urls
  */
 function getRedirectUrl() {
-  // In production on Vercel, use NEXT_PUBLIC_APP_URL or VERCEL_URL
-  if (process.env.NODE_ENV === 'production') {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL
+  let url =
+    process?.env?.NEXT_PUBLIC_APP_URL ?? // Set this to your site URL in production env.
+    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel.
+    'http://localhost:3000/'
 
-    if (appUrl) {
-      return appUrl
-    }
+  // Make sure to include `https://` when not localhost.
+  url = url.startsWith('http') ? url : `https://${url}`
 
-    if (vercelUrl) {
-      return `https://${vercelUrl}`
-    }
+  // Make sure to include a trailing `/`.
+  url = url.endsWith('/') ? url : `${url}/`
 
-    throw new Error('Missing NEXT_PUBLIC_APP_URL for production deployment')
-  }
-
-  // Development fallback
-  return 'http://localhost:3000'
+  return url
 }
 
 /**
