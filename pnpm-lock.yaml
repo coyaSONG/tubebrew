@@ -176,6 +176,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.47.10
         version: 2.78.0
+      googleapis:
+        specifier: ^144.0.0
+        version: 144.0.0
     devDependencies:
       '@types/node':
         specifier: ^20
