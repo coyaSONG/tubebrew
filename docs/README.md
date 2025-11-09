@@ -1,8 +1,57 @@
-# TubeBrew Dashboard Design Documentation
+# TubeBrew Documentation Hub
 
-This directory contains comprehensive design documentation for the TubeBrew dashboard implementation.
+This directory contains comprehensive technical documentation for the TubeBrew project.
 
-## 📚 Documentation Files
+## 📚 Core Documentation
+
+### 🗺️ [PROJECT_INDEX.md](PROJECT_INDEX.md) - **START HERE**
+**Central hub for all documentation** containing:
+- Quick start guide for new developers
+- Complete project overview and technology stack
+- Architecture diagrams and system overview
+- Development workflow and essential commands
+- Troubleshooting guide and common issues
+- Links to all other documentation
+
+**Use this for:** First document to read when joining the project
+
+### 🔌 [API.md](API.md)
+**Complete API reference** documenting:
+- All authentication endpoints and OAuth flow
+- YouTube integration endpoints
+- Channel and video management APIs
+- User settings and preferences
+- Worker API (health checks, stats, WebSub)
+- Request/response examples and error handling
+
+**Use this for:** Implementing or consuming API endpoints
+
+### 🎨 [COMPONENTS.md](COMPONENTS.md)
+**Frontend component documentation** covering:
+- Component architecture and directory structure
+- Layout components (Header, Sidebar, Mobile Menu)
+- Dashboard components (VideoCard, VideoGrid, Skeletons)
+- UI primitives (Button, Card, Badge, Avatar, Skeleton)
+- State management (React Query, URL state, future Zustand)
+- Styling guidelines and Tailwind CSS patterns
+- Component development guide and best practices
+
+**Use this for:** Creating or understanding React components
+
+### 💾 [DATABASE.md](DATABASE.md)
+**Database schema reference** detailing:
+- Complete table documentation with examples
+- Entity relationship diagrams
+- Index definitions and performance optimization
+- Row Level Security (RLS) policies explained
+- Migration workflow and best practices
+- Query examples and optimization guides
+
+**Use this for:** Writing database queries and creating migrations
+
+---
+
+## 🎯 Dashboard Design Documentation
 
 ### 1. [Dashboard Design Specification](./dashboard-design.md)
 **Primary design document** containing:
@@ -41,23 +90,37 @@ This directory contains comprehensive design documentation for the TubeBrew dash
 
 ---
 
-## 🎯 Quick Start
+## 🚀 Quick Start Guide
+
+### New to the Project?
+1. **Read First**: [PROJECT_INDEX.md](PROJECT_INDEX.md) - Complete overview
+2. **Setup**: [SETUP_GUIDE.md](../SETUP_GUIDE.md) - Environment setup
+3. **Understand**: [TubeBrew_PRD.md](../TubeBrew_PRD.md) - Product requirements
+4. **Start Coding**: Use API, Components, and Database docs as references
+
+### For Backend Developers
+1. [PROJECT_INDEX.md](PROJECT_INDEX.md) (Architecture)
+2. [DATABASE.md](DATABASE.md) (Schema)
+3. [API.md](API.md) (Endpoints)
+4. Start implementing!
+
+### For Frontend Developers
+1. [PROJECT_INDEX.md](PROJECT_INDEX.md) (Architecture)
+2. [COMPONENTS.md](COMPONENTS.md) (UI Structure)
+3. [API.md](API.md) (Data Fetching)
+4. Dashboard design docs for implementation details
 
 ### For Product Managers / Designers
-1. Start with: **Dashboard Design Specification**
-2. Review: Component layouts and user flows
-3. Check: UI/UX guidelines in Section 7
+1. [PROJECT_INDEX.md](PROJECT_INDEX.md) (Project overview)
+2. **Dashboard Design Specification** (UI/UX)
+3. [TubeBrew_PRD.md](../TubeBrew_PRD.md) (Requirements)
+4. Component layouts and user flows
 
 ### For Architects / Tech Leads
-1. Start with: **Dashboard Architecture**
-2. Review: Component hierarchy and data flow diagrams
-3. Check: State management and API architecture
-
-### For Developers
-1. Start with: **Implementation Guide**
-2. Follow: Phase-by-phase instructions
-3. Refer to: Design Specification for details
-4. Use: Architecture diagrams for context
+1. [PROJECT_INDEX.md](PROJECT_INDEX.md) (Complete architecture)
+2. **Dashboard Architecture** (Visual diagrams)
+3. [DATABASE.md](DATABASE.md) (Data modeling)
+4. [API.md](API.md) (System integration)
 
 ---
 
