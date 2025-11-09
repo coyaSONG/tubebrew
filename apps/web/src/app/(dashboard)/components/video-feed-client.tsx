@@ -126,7 +126,7 @@ export function VideoFeedClient({
     <div className="space-y-6">
       {/* Category Filter */}
       <CategoryFilter
-        categories={AI_CONFIG.categories}
+        categories={[...AI_CONFIG.categories]}
         activeCategory={category}
         onCategoryChange={setCategory}
         showCount={false}

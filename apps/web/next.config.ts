@@ -17,6 +17,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Transpile workspace packages for monorepo deployment
+  transpilePackages: [
+    '@tubebrew/ai',
+    '@tubebrew/db',
+    '@tubebrew/types',
+    '@tubebrew/youtube',
+  ],
+  // Production optimizations
+  reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
 };
 
 export default nextConfig;

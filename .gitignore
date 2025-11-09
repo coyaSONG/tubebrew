@@ -37,3 +37,4 @@ yarn-error.log*
 .serena/
 claudedocs/
 .playwright-mcp/
+.vercel

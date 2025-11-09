@@ -44,11 +44,15 @@ export function createClient() {
 /**
  * Get the redirect URL for OAuth
  * Following Supabase official pattern: https://supabase.com/docs/guides/auth/redirect-urls
+ *
+ * IMPORTANT: Must use direct property access (not optional chaining) for NEXT_PUBLIC_ vars
+ * to ensure Next.js inlines them at build time
  */
 function getRedirectUrl() {
+  // Direct property access is required for Next.js to inline at build time
   let url =
-    process?.env?.NEXT_PUBLIC_APP_URL ?? // Set this to your site URL in production env.
-    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel.
+    process.env.NEXT_PUBLIC_APP_URL || // Set this to your site URL in production env.
+    process.env.NEXT_PUBLIC_VERCEL_URL || // Automatically set by Vercel.
     'http://localhost:3000/'
 
   // Make sure to include `https://` when not localhost.
