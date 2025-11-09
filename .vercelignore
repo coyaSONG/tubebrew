@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+.turbo
+dist
+build
+
+# Cache
+.cache
+*.log
+
+# Development
+.env*.local
+.DS_Store
+
+# Tests
+coverage
+__tests__
+
+# Documentation
+claudedocs
+*.md
+!README.md
