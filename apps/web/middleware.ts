@@ -34,22 +34,34 @@ export async function middleware(request: NextRequest) {
   // DO NOT skip this for ANY route, including /auth/callback
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
-  // 인증되지 않은 사용자를 보호된 경로에서 리다이렉트
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/'
-  ) {
+  // Debug logging
+  console.log('[Middleware]', {
+    path: request.nextUrl.pathname,
+    hasUser: !!user,
+    userId: user?.id,
+    userError: userError?.message,
+    cookies: request.cookies.getAll().filter(c => c.name.includes('supabase')).map(c => ({ name: c.name, hasValue: !!c.value }))
+  })
+
+  // Public routes that don't require authentication
+  const publicRoutes = ['/auth/signin', '/auth/callback', '/auth/error']
+  const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+
+  // Redirect unauthenticated users to signin
+  if (!user && !isPublicRoute) {
+    console.log('[Middleware] Redirecting to signin - no user found')
     const url = request.nextUrl.clone()
     url.pathname = '/auth/signin'
     url.searchParams.set('next', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 
-  // 이미 로그인한 사용자가 로그인 페이지 접근 시 리다이렉트
-  if (user && request.nextUrl.pathname.startsWith('/auth/signin')) {
+  // Redirect authenticated users away from signin page
+  if (user && request.nextUrl.pathname === '/auth/signin') {
+    console.log('[Middleware] Redirecting to home - user already authenticated')
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
