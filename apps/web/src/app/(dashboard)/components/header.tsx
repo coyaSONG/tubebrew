@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/utils/supabase/server';
 import { MobileMenu } from './mobile-menu';
+import { Navigation } from './navigation';
+import { Z_INDEX } from './constants';
 
 export async function Header() {
   const supabase = await createClient();
@@ -10,8 +12,12 @@ export async function Header() {
   } = await supabase.auth.getUser();
 
   return (
-    <header className="sticky top-0 z-50 h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-full items-center justify-between px-4">
+    <header
+      className="sticky top-0 h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      style={{ zIndex: Z_INDEX.header }}
+      role="banner"
+    >
+      <div className="mx-auto flex h-full max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo & Navigation */}
         <div className="flex items-center gap-6">
           {/* Mobile Menu Button */}
@@ -22,43 +28,22 @@ export async function Header() {
           </Link>
 
           {/* Navigation - hidden on mobile */}
-          <nav className="hidden md:flex gap-4">
-            <Link
-              href="/"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/later"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Later
-            </Link>
-            <Link
-              href="/settings"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Settings
-            </Link>
-          </nav>
+          <Navigation />
         </div>
 
         {/* User Menu */}
-        <div className="flex items-center gap-2">
-          {user && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {user.email}
-              </span>
-              <form action="/auth/signout" method="post">
-                <Button variant="ghost" size="sm" type="submit">
-                  Sign Out
-                </Button>
-              </form>
-            </div>
-          )}
-        </div>
+        {user && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden sm:inline truncate max-w-[200px]">
+              {user.email}
+            </span>
+            <form action="/auth/signout" method="post">
+              <Button variant="ghost" size="sm" type="submit">
+                Sign Out
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
     </header>
   );
