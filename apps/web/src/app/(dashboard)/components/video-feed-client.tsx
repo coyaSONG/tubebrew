@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { VideoGrid } from '@/components/dashboard/video-grid';
 import { VideoGridSkeleton } from '@/components/dashboard/video-card-skeleton';
 import { Button } from '@/components/ui/button';
+import { BackToTopButton } from '@/components/ui/back-to-top-button';
 import { Loader2, Video, RefreshCcw } from 'lucide-react';
 import type { DashboardVideo } from '@tubebrew/types';
 
@@ -27,7 +29,22 @@ export function VideoFeedClient({
     useState<1 | 2 | 3 | 4>(defaultSummaryLevel);
   const [category, setCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [autoLoad, setAutoLoad] = useState(true); // Auto-load setting
 
+  // Intersection Observer for infinite scroll
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0.5,
+    rootMargin: '200px', // Trigger 200px before reaching the element
+  });
+
+  // Auto-load more videos when sentinel comes into view
+  useEffect(() => {
+    if (inView && hasMore && !isLoading && autoLoad) {
+      loadVideos(page + 1, false);
+    }
+  }, [inView, hasMore, isLoading, autoLoad, page]);
+
+  // Reload when filters change
   useEffect(() => {
     loadVideos(1, true);
   }, [category, sortBy]);
@@ -107,22 +124,35 @@ export function VideoFeedClient({
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between bg-card border border-border rounded-lg p-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-4 items-center">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="border border-border rounded-md px-3 py-2 text-sm bg-background"
+            aria-label="Sort videos by"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="views">Most Viewed</option>
             <option value="duration">Shortest</option>
           </select>
+
+          {/* Auto-load Toggle */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoLoad}
+              onChange={(e) => setAutoLoad(e.target.checked)}
+              className="w-4 h-4 rounded border-border"
+              aria-label="Auto-load more videos"
+            />
+            <span className="text-sm text-muted-foreground">Auto-load</span>
+          </label>
         </div>
 
         <div className="flex gap-3 items-center">
           <span className="text-sm text-muted-foreground">Summary Level:</span>
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="group" aria-label="Summary level selection">
             {[1, 2, 3, 4].map((level) => (
               <button
                 key={level}
@@ -132,7 +162,9 @@ export function VideoFeedClient({
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-muted-foreground/30 hover:border-muted-foreground/50'
                 }`}
-                title={`Level ${level}`}
+                title={`Summary Level ${level}`}
+                aria-label={`Summary Level ${level}`}
+                aria-pressed={summaryLevel === level}
               >
                 {level}
               </button>
@@ -192,8 +224,26 @@ export function VideoFeedClient({
         />
       )}
 
-      {/* Load More */}
-      {hasMore && !isLoading && videos.length > 0 && (
+      {/* Infinite Scroll Sentinel (Auto-load) */}
+      {hasMore && autoLoad && videos.length > 0 && (
+        <div
+          ref={loadMoreRef}
+          className="flex justify-center py-8"
+          role="status"
+          aria-live="polite"
+          aria-busy={isLoading}
+        >
+          {isLoading && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading more videos...</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Manual Load More Button (when auto-load is disabled) */}
+      {hasMore && !autoLoad && !isLoading && videos.length > 0 && (
         <div className="flex justify-center pt-4">
           <Button
             onClick={() => loadVideos(page + 1, false)}
@@ -214,10 +264,13 @@ export function VideoFeedClient({
 
       {/* End of Feed */}
       {!hasMore && videos.length > 0 && (
-        <div className="text-center py-8 text-sm text-muted-foreground">
+        <div className="text-center py-8 text-sm text-muted-foreground" role="status">
           You've reached the end of your feed
         </div>
       )}
+
+      {/* Back to Top Button */}
+      <BackToTopButton />
     </div>
   );
 }
