@@ -67,6 +67,11 @@ export async function GET(request: NextRequest) {
       throw settingsError;
     }
 
+    // Ensure settings exists
+    if (!settings) {
+      throw new Error('Failed to retrieve or create user settings');
+    }
+
     // 4. camelCase로 변환하여 응답
     return NextResponse.json({
       success: true,
