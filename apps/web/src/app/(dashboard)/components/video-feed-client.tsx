@@ -4,9 +4,11 @@ import { useState, useEffect, useTransition } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { VideoGrid } from '@/components/dashboard/video-grid';
 import { VideoGridSkeleton } from '@/components/dashboard/video-card-skeleton';
+import { CategoryFilter } from '@/components/dashboard/category-filter';
 import { Button } from '@/components/ui/button';
 import { BackToTopButton } from '@/components/ui/back-to-top-button';
 import { Loader2, Video, RefreshCcw } from 'lucide-react';
+import { AI_CONFIG } from '@tubebrew/ai';
 import type { DashboardVideo } from '@tubebrew/types';
 
 interface VideoFeedClientProps {
@@ -122,6 +124,14 @@ export function VideoFeedClient({
 
   return (
     <div className="space-y-6">
+      {/* Category Filter */}
+      <CategoryFilter
+        categories={AI_CONFIG.categories}
+        activeCategory={category}
+        onCategoryChange={setCategory}
+        showCount={false}
+      />
+
       {/* Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between bg-card border border-border rounded-lg p-4">
         <div className="flex flex-wrap gap-4 items-center">

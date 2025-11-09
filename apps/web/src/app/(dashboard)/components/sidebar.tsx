@@ -1,56 +1,50 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AI_CONFIG } from '@tubebrew/ai';
+import { Home, Bookmark, Settings, Clock } from 'lucide-react';
 
-const CATEGORIES = ['전체', ...AI_CONFIG.categories];
-
-interface SidebarProps {
-  selectedCategory?: string | null;
-  onCategoryChange?: (category: string | null) => void;
-}
-
-export function Sidebar({
-  selectedCategory,
-  onCategoryChange,
-}: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
-  const isDashboard = pathname === '/';
+
+  const navItems = [
+    { href: '/', label: 'Dashboard', icon: Home },
+    { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
+    { href: '/history', label: 'History', icon: Clock },
+    { href: '/settings', label: 'Settings', icon: Settings },
+  ];
 
   return (
     <div className="p-4 space-y-6">
-      {/* Categories */}
-      <div>
-        <h3 className="font-semibold mb-3 text-sm">Categories</h3>
+      {/* Navigation */}
+      <nav>
+        <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Menu</h3>
         <div className="space-y-1">
-          {CATEGORIES.map((category) => {
-            const isSelected =
-              isDashboard &&
-              ((category === '전체' && !selectedCategory) ||
-                selectedCategory === category);
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
 
             return (
-              <button
-                key={category}
-                onClick={() =>
-                  onCategoryChange?.(category === '전체' ? null : category)
-                }
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                  isSelected
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                  isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {category}
-              </button>
+                <Icon className="w-4 h-4" />
+                {item.label}
+              </Link>
             );
           })}
         </div>
-      </div>
+      </nav>
 
       {/* Quick Actions */}
       <div className="pt-4 border-t border-border">
-        <h3 className="font-semibold mb-3 text-sm">Quick Actions</h3>
+        <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Quick Actions</h3>
         <div className="space-y-2 text-sm">
           <button className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             Refresh Feed
