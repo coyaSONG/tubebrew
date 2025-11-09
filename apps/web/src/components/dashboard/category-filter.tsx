@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 interface CategoryFilterProps {
-  categories: string[];
+  categories: readonly string[];
   activeCategory: string | null;
   onCategoryChange: (category: string | null) => void;
   categoryCounts?: Record<string, number>;
