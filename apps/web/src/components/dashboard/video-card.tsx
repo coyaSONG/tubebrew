@@ -190,8 +190,8 @@ export function VideoCard({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-3">
+        {/* Content - Reduced padding for better thumbnail ratio */}
+        <div className="p-3 space-y-3">
           {/* Channel Info */}
           <div className="flex items-start gap-3">
             <Avatar className="w-10 h-10 border-2 border-border">
@@ -205,26 +205,25 @@ export function VideoCard({
             </Avatar>
 
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-foreground line-clamp-2 leading-tight mb-1 group-hover:text-primary transition-colors text-sm">
+              <h3 className="font-semibold text-foreground line-clamp-2 leading-snug mb-1 group-hover:text-primary transition-colors text-base">
                 {video.title}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm font-medium text-muted-foreground">
                 {video.channel?.title}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                {video.viewCount && (
-                  <>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      {formatViewCount(video.viewCount)} views
-                    </span>
-                    <span>•</span>
-                  </>
+                {/* Simplified metadata: Show views if significant (>100k), otherwise show time */}
+                {video.viewCount && video.viewCount > 100000 ? (
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-3 h-3" />
+                    {formatViewCount(video.viewCount)} views
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {formatTimeAgo(video.publishedAt)}
+                  </span>
                 )}
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatTimeAgo(video.publishedAt)}
-                </span>
               </div>
               {video.channel?.category && (
                 <div className="mt-1">
@@ -236,9 +235,9 @@ export function VideoCard({
             </div>
           </div>
 
-          {/* AI Summary */}
-          {summary && (
-            <div className="space-y-2">
+          {/* AI Summary - Progressive Disclosure: Only show on hover */}
+          {summary && isHovered && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" />
@@ -282,8 +281,12 @@ export function VideoCard({
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 pt-2 border-t border-border">
+          {/* Actions - Progressive Disclosure: Only show on hover */}
+          <div
+            className={`flex items-center gap-2 pt-2 border-t border-border transition-opacity duration-200 ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
             <Button
               variant={isBookmarked ? 'default' : 'outline'}
               size="sm"

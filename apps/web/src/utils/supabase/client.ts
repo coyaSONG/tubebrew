@@ -2,13 +2,42 @@ import { createBrowserClient } from '@supabase/ssr'
 import { Database } from '@tubebrew/db'
 
 /**
+ * Validate required environment variables
+ */
+function validateEnvVars() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const missing = []
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
+    if (!supabaseAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+
+    throw new Error(
+      `Missing required Supabase environment variables: ${missing.join(', ')}\n\n` +
+      `Please add these to your Vercel project:\n` +
+      `1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables\n` +
+      `2. Add the following variables from your Supabase project:\n` +
+      `   - NEXT_PUBLIC_SUPABASE_URL: Your Supabase project URL\n` +
+      `   - NEXT_PUBLIC_SUPABASE_ANON_KEY: Your Supabase anonymous key\n` +
+      `3. Redeploy your project for changes to take effect\n\n` +
+      `Find these values at: https://supabase.com/dashboard/project/_/settings/api`
+    )
+  }
+
+  return { supabaseUrl, supabaseAnonKey }
+}
+
+/**
  * Client Components용 Supabase 클라이언트
  * 브라우저 환경에서 사용
  */
 export function createClient() {
+  const { supabaseUrl, supabaseAnonKey } = validateEnvVars()
+
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseUrl,
+    supabaseAnonKey
   )
 }
 

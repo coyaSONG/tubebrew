@@ -4,7 +4,19 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_APP_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "YOUTUBE_API_KEY",
+        "OPENROUTER_API_KEY",
+        "OPENROUTER_BASE_URL",
+        "LLM_MODEL",
+        "REDIS_URL",
+        "NODE_ENV"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
