@@ -24,13 +24,13 @@ export async function Header() {
           {/* Mobile Menu Button */}
           <MobileMenu />
 
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-3">
             <Image
               src="/logo.png"
               alt="TubeBrew Logo"
-              width={48}
-              height={48}
-              className="w-12 h-12"
+              width={120}
+              height={40}
+              className="h-10"
               priority
             />
             <span className="text-xl font-bold">TubeBrew</span>
