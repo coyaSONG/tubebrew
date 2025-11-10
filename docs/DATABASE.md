@@ -1,8 +1,8 @@
 # TubeBrew Database Schema Documentation
 
 **Database**: Supabase (PostgreSQL 15)
-**Version**: 1.0
-**Last Migration**: 2025-11-02
+**Version**: 1.1
+**Last Migration**: 2025-11-10 (remove_duplicate_rls_policies)
 
 ---
 
@@ -160,7 +160,9 @@ CREATE TABLE user_settings (
 - Cascades on user deletion
 
 **RLS Policies**:
-- Users can SELECT/UPDATE only their own settings
+- Users can SELECT only their own settings (read-only policy)
+- Users can INSERT their own settings (create policy)
+- Users can UPDATE only their own settings (update policy)
 
 **Example Data**:
 ```json
@@ -251,7 +253,7 @@ CREATE TABLE user_channels (
 - Index on `user_id` for fast user queries
 
 **RLS Policies**:
-- Users can SELECT/INSERT/UPDATE/DELETE only their own channel relationships
+- Users can manage (ALL operations) only their own channel relationships (single optimized policy)
 
 ---
 
@@ -417,7 +419,7 @@ CREATE TABLE bookmarks (
 - Index on `(user_id, created_at DESC)` for chronological lists
 
 **RLS Policies**:
-- Users can SELECT/INSERT/DELETE only their own bookmarks
+- Users can manage (ALL operations) only their own bookmarks (single optimized policy)
 
 ---
 
@@ -449,7 +451,7 @@ CREATE TABLE watch_history (
 - Index on `(user_id, watched_at DESC)` for recent history
 
 **RLS Policies**:
-- Users can SELECT/INSERT only their own history
+- Users can manage (ALL operations) only their own history (single optimized policy)
 
 ---
 
@@ -623,13 +625,7 @@ CREATE POLICY "Users can update own data" ON users
 
 **User Channels Table**:
 ```sql
-CREATE POLICY "Users can view own channels" ON user_channels
-  FOR SELECT USING (
-    user_id IN (
-      SELECT id FROM users WHERE google_id = auth.uid()::text
-    )
-  );
-
+-- Optimized: Single policy for all operations (2025-11-10)
 CREATE POLICY "Users can manage own channels" ON user_channels
   FOR ALL USING (
     user_id IN (
@@ -655,24 +651,39 @@ SELECT * FROM user_channels; -- Should return only current user's channels
 
 ### Migration Files
 
-Located in `packages/db/migrations/`:
+Located in `supabase/migrations/`:
 
-1. **20251101000001_initial_schema.sql**
-   - Creates all core tables
-   - Sets up indexes
-   - Enables RLS and creates policies
+1. **20251101130500_fix_function_search_path_security**
+   - Function security search_path fixes
 
-2. **20251102000001_add_provider_token.sql**
-   - Adds `provider_token` JSONB column to users
-   - Stores OAuth tokens for YouTube API
+2. **20251101130608_fix_rls_policies_for_supabase_auth**
+   - Initial RLS policies for Supabase Auth
 
-3. **20251102000002_add_websub_subscriptions.sql**
-   - Creates `websub_subscriptions` table
-   - Adds indexes for renewal scheduling
+3. **20251101133350_create_user_on_signup_trigger**
+   - Auto-create user records on signup
 
-4. **20251102000003_add_user_settings_insert_policy.sql**
-   - Adds INSERT policy for user_settings
-   - Allows auto-creation on first access
+4. **20251101164037_add_provider_token**
+   - OAuth token storage for YouTube API
+
+5. **20251102031643_add_websub_subscriptions**
+   - WebSub subscription management table
+
+6. **20251102075952_add_user_settings_insert_policy**
+   - User settings INSERT policy
+
+7. **20251110083555_fix_security_issues**
+   - Security vulnerability fixes
+
+8. **20251110083627_add_foreign_key_indexes**
+   - Performance: Foreign key indexes
+
+9. **20251110083700_optimize_rls_policies**
+   - Performance: RLS policy optimization
+
+10. **20251110085153_remove_duplicate_rls_policies** ✨ NEW
+    - Performance: Remove 20 duplicate RLS policies
+    - Consolidates SELECT/ALL and INSERT/INSERT policies
+    - **Impact**: 20 performance warnings resolved
 
 ### Migration Process
 
@@ -890,6 +901,12 @@ WHERE uc.user_id = $1;
 
 ## Changelog
 
+### Version 1.1 (2025-11-10)
+- **Performance**: Removed 20 duplicate RLS policies
+- **Optimization**: Consolidated policies for bookmarks, user_channels, user_settings, users, watch_history
+- **Migration**: Added `remove_duplicate_rls_policies` migration
+- **Impact**: Resolved all 20 performance warnings from Supabase linter
+
 ### Version 1.0 (2025-11-08)
 - Initial database documentation
 - All core tables documented
@@ -899,4 +916,4 @@ WHERE uc.user_id = $1;
 ---
 
 **Maintained By**: TubeBrew Development Team
-**Last Updated**: 2025-11-08
+**Last Updated**: 2025-11-10
