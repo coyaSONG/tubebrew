@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/utils/supabase/server';
 import { MobileMenu } from './mobile-menu';
@@ -23,8 +24,16 @@ export async function Header() {
           {/* Mobile Menu Button */}
           <MobileMenu />
 
-          <Link href="/" className="text-xl font-bold">
-            TubeBrew
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo.png"
+              alt="TubeBrew Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8"
+              priority
+            />
+            <span className="text-xl font-bold">TubeBrew</span>
           </Link>
 
           {/* Navigation - hidden on mobile */}
