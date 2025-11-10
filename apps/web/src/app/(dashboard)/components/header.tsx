@@ -28,9 +28,9 @@ export async function Header() {
             <Image
               src="/logo.png"
               alt="TubeBrew Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
+              width={48}
+              height={48}
+              className="w-12 h-12"
               priority
             />
             <span className="text-xl font-bold">TubeBrew</span>
