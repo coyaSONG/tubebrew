@@ -20,17 +20,17 @@ export async function Header() {
     >
       <div className="mx-auto flex h-full max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo & Navigation */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           {/* Mobile Menu Button */}
           <MobileMenu />
 
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2">
             <Image
               src="/logo.png"
               alt="TubeBrew Logo"
-              width={72}
-              height={32}
-              className="h-8"
+              width={192}
+              height={128}
+              className="w-auto h-32"
               priority
             />
             <span className="text-xl font-bold">TubeBrew</span>
