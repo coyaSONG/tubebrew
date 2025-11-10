@@ -28,7 +28,7 @@ export async function Header() {
             <Image
               src="/logo.png"
               alt="TubeBrew Logo"
-              width={48}
+              width={72}
               height={32}
               className="h-8"
               priority
