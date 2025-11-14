@@ -235,19 +235,19 @@ export function VideoCard({
             </div>
           </div>
 
-          {/* AI Summary - Progressive Disclosure: Only show on hover */}
-          {summary && isHovered && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {/* AI Summary - Always Visible (Core Feature) */}
+          {summary && (
+            <div className="space-y-2 border border-primary/20 bg-primary/5 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className="text-xs font-semibold text-foreground">
                     AI Summary
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-5 px-2 text-xs hover:bg-primary/10"
+                    className="h-7 px-2 text-xs hover:bg-primary/10 md:h-5"
                     onClick={cycleSummaryLevel}
                   >
                     Level {summaryLevel}
@@ -256,7 +256,7 @@ export function VideoCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0"
+                  className="h-9 w-9 p-0 md:h-6 md:w-6"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -272,7 +272,7 @@ export function VideoCard({
               </div>
 
               <div
-                className={`text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 transition-all duration-300 ${
+                className={`text-sm text-foreground leading-relaxed transition-all duration-300 ${
                   showFullSummary ? 'line-clamp-none' : 'line-clamp-2'
                 }`}
               >
@@ -281,16 +281,16 @@ export function VideoCard({
             </div>
           )}
 
-          {/* Actions - Progressive Disclosure: Only show on hover */}
+          {/* Actions - Always visible on mobile, hover on desktop */}
           <div
             className={`flex items-center gap-2 pt-2 border-t border-border transition-opacity duration-200 ${
-              isHovered ? 'opacity-100' : 'opacity-0'
+              isHovered ? 'opacity-100' : 'opacity-100 md:opacity-0'
             }`}
           >
             <Button
               variant={isBookmarked ? 'default' : 'outline'}
               size="sm"
-              className="flex-1 transition-all duration-300 text-xs"
+              className="flex-1 transition-all duration-300 text-xs h-9 md:h-8"
               onClick={handleBookmark}
             >
               {isBookmarked ? (
@@ -309,7 +309,7 @@ export function VideoCard({
             <Button
               variant={isWatched ? 'secondary' : 'outline'}
               size="sm"
-              className="flex-1 transition-all duration-300 text-xs"
+              className="flex-1 transition-all duration-300 text-xs h-9 md:h-8"
               onClick={handleWatch}
               disabled={isWatched}
             >
@@ -332,7 +332,7 @@ export function VideoCard({
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
             >
-              <Button variant="ghost" size="sm" className="px-3">
+              <Button variant="ghost" size="sm" className="px-3 h-9 md:h-8">
                 <ThumbsUp className="w-3 h-3" />
               </Button>
             </a>

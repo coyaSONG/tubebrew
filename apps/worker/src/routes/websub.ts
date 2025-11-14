@@ -1,26 +1,10 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { parseStringPromise } from 'xml2js';
 import crypto from 'crypto';
-import { supabaseAdmin } from '@tubebrew/db';
+import { supabaseAdmin, type Database } from '@tubebrew/db';
 
-// Type for channel_websub_subscriptions table (not in generated types yet)
-interface WebSubSubscription {
-  id: string;
-  channel_id: string;
-  youtube_channel_id: string;
-  hub_topic_url: string;
-  hub_callback_url: string;
-  hub_lease_seconds: number | null;
-  hub_lease_expires_at: string | null;
-  status: 'pending' | 'verified' | 'failed' | 'expired';
-  last_notification_at: string | null;
-  verification_token: string | null;
-  subscribe_attempts: number;
-  last_subscribe_attempt_at: string | null;
-  last_error: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// Type for channel_websub_subscriptions table from generated types
+type WebSubSubscription = Database['public']['Tables']['channel_websub_subscriptions']['Row'];
 
 /**
  * WebSub (PubSubHubbub) Routes
@@ -44,6 +28,49 @@ interface AtomFeed {
       updated?: string[];
     }>;
   };
+}
+
+/**
+ * Verify WebSub signature using HMAC-SHA1
+ *
+ * Security mechanism:
+ * - YouTube signs notification payloads with HMAC-SHA1 using shared secret
+ * - Signature sent in X-Hub-Signature header as "sha1=<hex_signature>"
+ * - We recompute HMAC and compare using timing-safe comparison
+ * - Prevents malicious actors from sending fake notifications
+ *
+ * @param body - Raw request body (must be original bytes, not parsed)
+ * @param signature - X-Hub-Signature header value
+ * @param secret - WEBSUB_SECRET from environment
+ * @returns true if signature is valid, false otherwise
+ */
+function verifyWebSubSignature(
+  body: string | Buffer,
+  signature: string | undefined,
+  secret: string
+): boolean {
+  if (!signature || !signature.startsWith('sha1=')) {
+    return false;
+  }
+
+  // Extract hex signature from "sha1=<hex_signature>" format
+  const receivedSignature = signature.substring(5);
+
+  // Compute expected signature
+  const hmac = crypto.createHmac('sha1', secret);
+  hmac.update(body);
+  const expectedSignature = hmac.digest('hex');
+
+  // Timing-safe comparison to prevent timing attacks
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(receivedSignature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    );
+  } catch (error) {
+    // timingSafeEqual throws if buffer lengths differ
+    return false;
+  }
 }
 
 export async function websubRoutes(fastify: FastifyInstance) {
@@ -77,8 +104,7 @@ export async function websubRoutes(fastify: FastifyInstance) {
 
     if (mode === 'subscribe') {
       // Update subscription status to verified
-      // @ts-ignore - channel_websub_subscriptions not in generated types yet
-      const { error } = await (supabaseAdmin as any)
+      const { error } = await supabaseAdmin
         .from('channel_websub_subscriptions')
         .update({
           status: 'verified',
@@ -96,8 +122,7 @@ export async function websubRoutes(fastify: FastifyInstance) {
       }
     } else {
       // Unsubscribe
-      // @ts-ignore - channel_websub_subscriptions not in generated types yet
-      const { error } = await (supabaseAdmin as any)
+      const { error } = await supabaseAdmin
         .from('channel_websub_subscriptions')
         .update({ status: 'expired' })
         .eq('youtube_channel_id', youtubeChannelId);
@@ -123,6 +148,27 @@ export async function websubRoutes(fastify: FastifyInstance) {
   ) => {
     try {
       const atomXml = request.body as unknown as string;
+      const hubSignature = request.headers['x-hub-signature'] as string | undefined;
+      const websubSecret = process.env.WEBSUB_SECRET;
+
+      // Verify signature if secret is configured
+      if (websubSecret) {
+        if (!verifyWebSubSignature(atomXml, hubSignature, websubSecret)) {
+          fastify.log.warn(
+            {
+              hasSignature: !!hubSignature,
+              signaturePrefix: hubSignature?.substring(0, 10),
+            },
+            'WebSub signature verification failed'
+          );
+          return reply.code(401).send({ error: 'Invalid signature' });
+        }
+        fastify.log.debug('WebSub signature verified successfully');
+      } else {
+        fastify.log.warn(
+          'WEBSUB_SECRET not configured - skipping signature verification (INSECURE)'
+        );
+      }
 
       fastify.log.debug({ atomXml }, 'Received WebSub notification');
 
@@ -150,8 +196,7 @@ export async function websubRoutes(fastify: FastifyInstance) {
         fastify.log.info({ videoId, channelId, title }, 'Processing WebSub notification');
 
         // Update last notification timestamp
-        // @ts-ignore - channel_websub_subscriptions not in generated types yet
-        await (supabaseAdmin as any)
+        await supabaseAdmin
           .from('channel_websub_subscriptions')
           .update({ last_notification_at: new Date().toISOString() })
           .eq('youtube_channel_id', channelId);
@@ -192,8 +237,7 @@ export async function websubRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/websub/status', async (request, reply) => {
     try {
-      // @ts-ignore - channel_websub_subscriptions not in generated types yet
-      const { data: subscriptions, error } = await (supabaseAdmin as any)
+      const { data: subscriptions, error } = await supabaseAdmin
         .from('channel_websub_subscriptions')
         .select('*')
         .order('created_at', { ascending: false })
@@ -204,14 +248,13 @@ export async function websubRoutes(fastify: FastifyInstance) {
         return reply.code(500).send({ error: 'Failed to fetch subscriptions' });
       }
 
-      // @ts-ignore - subscriptions is typed as any[] due to new table
       const stats = {
         total: subscriptions?.length || 0,
-        verified: subscriptions?.filter((s: any) => s.status === 'verified').length || 0,
-        pending: subscriptions?.filter((s: any) => s.status === 'pending').length || 0,
-        failed: subscriptions?.filter((s: any) => s.status === 'failed').length || 0,
-        expired: subscriptions?.filter((s: any) => s.status === 'expired').length || 0,
-        expiring_soon: subscriptions?.filter((s: any) => {
+        verified: subscriptions?.filter((s) => s.status === 'verified').length || 0,
+        pending: subscriptions?.filter((s) => s.status === 'pending').length || 0,
+        failed: subscriptions?.filter((s) => s.status === 'failed').length || 0,
+        expired: subscriptions?.filter((s) => s.status === 'expired').length || 0,
+        expiring_soon: subscriptions?.filter((s) => {
           if (!s.hub_lease_expires_at) return false;
           const expiresIn = new Date(s.hub_lease_expires_at).getTime() - Date.now();
           return expiresIn > 0 && expiresIn < 24 * 60 * 60 * 1000; // Less than 24 hours

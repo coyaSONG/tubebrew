@@ -1,7 +1,3 @@
-// Database-specific types
-// Auto-generated from Supabase schema using Supabase MCP
-// Last updated: 2025-11-01
-
 export type Json =
   | string
   | number
@@ -50,6 +46,68 @@ export type Database = {
             columns: ["video_id"]
             isOneToOne: false
             referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_websub_subscriptions: {
+        Row: {
+          channel_id: string | null
+          created_at: string | null
+          hub_callback_url: string
+          hub_lease_expires_at: string | null
+          hub_lease_seconds: number | null
+          hub_topic_url: string
+          id: string
+          last_error: string | null
+          last_notification_at: string | null
+          last_subscribe_attempt_at: string | null
+          status: string | null
+          subscribe_attempts: number | null
+          updated_at: string | null
+          verification_token: string | null
+          youtube_channel_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string | null
+          hub_callback_url: string
+          hub_lease_expires_at?: string | null
+          hub_lease_seconds?: number | null
+          hub_topic_url: string
+          id?: string
+          last_error?: string | null
+          last_notification_at?: string | null
+          last_subscribe_attempt_at?: string | null
+          status?: string | null
+          subscribe_attempts?: number | null
+          updated_at?: string | null
+          verification_token?: string | null
+          youtube_channel_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string | null
+          hub_callback_url?: string
+          hub_lease_expires_at?: string | null
+          hub_lease_seconds?: number | null
+          hub_topic_url?: string
+          id?: string
+          last_error?: string | null
+          last_notification_at?: string | null
+          last_subscribe_attempt_at?: string | null
+          status?: string | null
+          subscribe_attempts?: number | null
+          updated_at?: string | null
+          verification_token?: string | null
+          youtube_channel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_websub_subscriptions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: true
+            referencedRelation: "channels"
             referencedColumns: ["id"]
           },
         ]

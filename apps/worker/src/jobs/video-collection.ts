@@ -1,7 +1,7 @@
 import { Job, Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { YouTubeAPI } from '@tubebrew/youtube';
-import { DBUtils, supabaseAdmin } from '@tubebrew/db';
+import { DBUtils, supabaseAdmin, getValidProviderToken } from '@tubebrew/db';
 import type { VideoProcessingJob, SummaryGenerationJob } from '@tubebrew/types';
 
 // Use admin client to bypass RLS
@@ -30,17 +30,21 @@ export async function processVideoCollection(job: Job<VideoProcessingJob>) {
   job.log(`Starting video collection for channel ${channelId}, user ${userId}`);
 
   try {
-    // 1. Get user's provider token for YouTube API
+    // 1. Get user's provider token for YouTube API (with auto-refresh)
     if (!userId) {
       throw new Error('userId is required for video collection');
     }
-    const user = await db.getUser(userId);
-    if (!user || !user.provider_token) {
-      throw new Error('User not found or provider token missing');
+
+    // Get valid provider token (will auto-refresh if expired)
+    const providerToken = await getValidProviderToken(supabaseAdmin, userId);
+    if (!providerToken) {
+      throw new Error('Failed to get valid provider token. User may need to re-authenticate.');
     }
 
+    job.log('✅ Valid provider token obtained (refreshed if necessary)');
+
     // 2. Initialize YouTube API with user's OAuth token (second parameter)
-    const youtube = new YouTubeAPI(undefined, user.provider_token);
+    const youtube = new YouTubeAPI(undefined, providerToken);
 
     // 3. Fetch recent videos from channel via RSS (quota-free)
     const rssVideos = await youtube.getChannelVideosViaRSS(channelId);

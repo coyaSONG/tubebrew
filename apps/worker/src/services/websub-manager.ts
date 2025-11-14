@@ -1,6 +1,8 @@
 import crypto from 'crypto';
-import { supabaseAdmin } from '@tubebrew/db';
+import { supabaseAdmin, type Database } from '@tubebrew/db';
 import type { Logger } from 'pino';
+
+type WebSubSubscription = Database['public']['Tables']['channel_websub_subscriptions']['Row'];
 
 const YOUTUBE_HUB_URL = 'https://pubsubhubbub.appspot.com/subscribe';
 
@@ -31,8 +33,7 @@ export class WebSubManager {
     try {
       // Create or update subscription record
       if (mode === 'subscribe') {
-        // @ts-ignore - channel_websub_subscriptions not in generated types yet
-        const { error: upsertError } = await (supabaseAdmin as any)
+        const { error: upsertError } = await supabaseAdmin
           .from('channel_websub_subscriptions')
           .upsert({
             channel_id: channelDbId,
@@ -63,6 +64,18 @@ export class WebSubManager {
         'hub.verify': 'sync', // Synchronous verification
       });
 
+      // Include secret for HMAC signature verification if configured
+      const websubSecret = process.env.WEBSUB_SECRET;
+      if (websubSecret) {
+        params.append('hub.secret', websubSecret);
+        this.logger.debug({ youtubeChannelId }, 'Including WEBSUB_SECRET in subscription request');
+      } else {
+        this.logger.warn(
+          { youtubeChannelId },
+          'WEBSUB_SECRET not configured - notifications will not be authenticated (INSECURE)'
+        );
+      }
+
       const response = await fetch(YOUTUBE_HUB_URL, {
         method: 'POST',
         headers: {
@@ -79,8 +92,7 @@ export class WebSubManager {
         );
 
         // Update subscription record with error
-        // @ts-ignore - channel_websub_subscriptions not in generated types yet
-        await (supabaseAdmin as any)
+        await supabaseAdmin
           .from('channel_websub_subscriptions')
           .update({
             status: 'failed',
@@ -97,8 +109,7 @@ export class WebSubManager {
       this.logger.error({ error: (error as Error).message, youtubeChannelId }, 'Error subscribing to WebSub');
 
       // Update subscription record with error
-      // @ts-ignore - channel_websub_subscriptions not in generated types yet
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('channel_websub_subscriptions')
         .update({
           status: 'failed',
@@ -115,14 +126,13 @@ export class WebSubManager {
    */
   async unsubscribe(youtubeChannelId: string, callbackUrl: string): Promise<boolean> {
     // Get subscription record to find channel_id
-    // @ts-ignore - channel_websub_subscriptions not in generated types yet
-    const { data: subscription } = await (supabaseAdmin as any)
+    const { data: subscription } = await supabaseAdmin
       .from('channel_websub_subscriptions')
       .select('channel_id')
       .eq('youtube_channel_id', youtubeChannelId)
       .single();
 
-    if (!subscription) {
+    if (!subscription || !subscription.channel_id) {
       this.logger.warn({ youtubeChannelId }, 'No subscription found to unsubscribe');
       return false;
     }
@@ -145,8 +155,7 @@ export class WebSubManager {
     // Find subscriptions expiring in the next 48 hours
     const expiryThreshold = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
-    // @ts-ignore - channel_websub_subscriptions not in generated types yet
-    const { data: expiringSubscriptions, error } = await (supabaseAdmin as any)
+    const { data: expiringSubscriptions, error } = await supabaseAdmin
       .from('channel_websub_subscriptions')
       .select('*')
       .eq('status', 'verified')
@@ -166,10 +175,10 @@ export class WebSubManager {
     this.logger.info({ count: expiringSubscriptions.length }, 'Found expiring subscriptions to renew');
 
     // Renew each subscription
-    for (const sub of expiringSubscriptions as any[]) {
+    for (const sub of expiringSubscriptions) {
       await this.subscribe({
         youtubeChannelId: sub.youtube_channel_id,
-        channelDbId: sub.channel_id,
+        channelDbId: sub.channel_id || '',
         callbackUrl,
         mode: 'subscribe',
       });
@@ -189,13 +198,10 @@ export class WebSubManager {
     // Find failed subscriptions that haven't been retried recently
     const retryThreshold = new Date(Date.now() - 60 * 60 * 1000).toISOString(); // 1 hour ago
 
-    // @ts-ignore - channel_websub_subscriptions not in generated types yet
-    const { data: failedSubscriptions, error } = await (supabaseAdmin as any)
+    const { data: failedSubscriptions, error } = await supabaseAdmin
       .from('channel_websub_subscriptions')
       .select('*')
-      .eq('status', 'failed')
-      .lt('subscribe_attempts', 5) // Max 5 retry attempts
-      .or(`last_subscribe_attempt_at.is.null,last_subscribe_attempt_at.lt.${retryThreshold}`);
+      .eq('status', 'failed');
 
     if (error) {
       this.logger.error({ error }, 'Failed to fetch failed subscriptions');
@@ -210,10 +216,9 @@ export class WebSubManager {
     this.logger.info({ count: failedSubscriptions.length }, 'Found failed subscriptions to retry');
 
     // Retry each subscription
-    for (const sub of failedSubscriptions as any[]) {
+    for (const sub of failedSubscriptions) {
       // Increment retry attempt
-      // @ts-ignore - channel_websub_subscriptions not in generated types yet
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('channel_websub_subscriptions')
         .update({
           subscribe_attempts: (sub.subscribe_attempts || 0) + 1,
@@ -222,7 +227,7 @@ export class WebSubManager {
 
       await this.subscribe({
         youtubeChannelId: sub.youtube_channel_id,
-        channelDbId: sub.channel_id,
+        channelDbId: sub.channel_id || '',
         callbackUrl,
         mode: 'subscribe',
       });
@@ -275,8 +280,7 @@ export class WebSubManager {
     // Subscribe to each channel
     for (const channel of uniqueChannels) {
       // Check if already subscribed
-      // @ts-ignore - channel_websub_subscriptions not in generated types yet
-      const { data: existing } = await (supabaseAdmin as any)
+      const { data: existing } = await supabaseAdmin
         .from('channel_websub_subscriptions')
         .select('status')
         .eq('youtube_channel_id', channel.youtube_id)
