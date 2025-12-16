@@ -275,7 +275,7 @@ export function VideoFeedClient({
       {/* End of Feed */}
       {!hasMore && videos.length > 0 && (
         <div className="text-center py-8 text-sm text-muted-foreground" role="status">
-          You've reached the end of your feed
+          You&apos;ve reached the end of your feed
         </div>
       )}
 

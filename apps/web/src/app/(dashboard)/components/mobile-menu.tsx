@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Settings, Home, Clock } from 'lucide-react';
@@ -20,10 +20,15 @@ export function MobileMenu() {
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
+  const prevPathnameRef = useRef(pathname);
 
-  // Close menu on route change
-  useEffect(() => {
-    closeMenu();
+  // Close menu on route change - this is intentional UI behavior
+  useLayoutEffect(() => {
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsOpen(false);
+    }
   }, [pathname]);
 
   // Close menu on Escape key

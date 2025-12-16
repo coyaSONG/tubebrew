@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
         createdAt: video.channel.created_at,
         updatedAt: video.channel.updated_at,
       } : undefined,
-      summaries: video.summaries?.map((s: any) => ({
+      summaries: video.summaries?.map((s: { id: string; video_id: string | null; level: number | null; content: string; model: string | null; tokens_used: number | null; created_at: string | null }) => ({
         id: s.id,
         videoId: s.video_id,
         level: s.level,
