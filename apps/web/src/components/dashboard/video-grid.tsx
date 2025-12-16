@@ -22,7 +22,7 @@ export function VideoGrid({
         <div className="text-5xl">📭</div>
         <h3 className="text-xl font-semibold">No Videos Found</h3>
         <p className="text-muted-foreground">
-          Your subscribed channels haven't posted recently.
+          Your subscribed channels haven&apos;t posted recently.
         </p>
       </div>
     );

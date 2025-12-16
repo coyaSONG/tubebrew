@@ -30,7 +30,7 @@ export default function OnboardingPage() {
         throw new Error(data.error || 'Failed to fetch subscriptions');
       }
 
-      const channelsData: ChannelWithCategory[] = data.data.map((ch: any) => ({
+      const channelsData: ChannelWithCategory[] = data.data.map((ch: { channelId: string; title: string; description: string; thumbnail: string; publishedAt: string }) => ({
         channelId: ch.channelId,
         title: ch.title,
         description: ch.description,

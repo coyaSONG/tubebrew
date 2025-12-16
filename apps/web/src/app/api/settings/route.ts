@@ -38,11 +38,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. 사용자 설정 가져오기 (없으면 기본값으로 생성)
-    let { data: settings, error: settingsError } = await supabase
+    const { data: existingSettings, error: settingsError } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', userData.id)
       .single();
+
+    let settings = existingSettings;
 
     // 설정이 없으면 기본값으로 생성
     if (settingsError && settingsError.code === 'PGRST116') {
@@ -137,7 +139,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     // 4. snake_case로 변환
-    const updates: any = {};
+    const updates: Record<string, string | number | boolean> = {};
 
     if (body.summaryLevel !== undefined) {
       // Validate summary level (1-4)
