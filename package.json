@@ -15,7 +15,7 @@
     "db:generate-types": "cd packages/db && pnpm run generate-types"
   },
   "devDependencies": {
-    "turbo": "^2.3.3",
+    "turbo": "^2.9.14",
     "prettier": "^3.3.3"
   },
   "packageManager": "pnpm@9.15.1",
