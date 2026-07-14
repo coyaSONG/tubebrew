@@ -78,7 +78,11 @@ export async function websubRoutes(fastify: FastifyInstance) {
    * GET /websub/callback
    * Handles WebSub subscription verification from YouTube
    */
-  fastify.get('/websub/callback', async (
+  fastify.get('/websub/callback', {
+    config: {
+      rateLimit: { max: 300, timeWindow: '1 minute' },
+    },
+  }, async (
     request: FastifyRequest<{ Querystring: WebSubVerificationQuery }>,
     reply: FastifyReply
   ) => {
@@ -142,7 +146,11 @@ export async function websubRoutes(fastify: FastifyInstance) {
    * POST /websub/callback
    * Handles video upload/update notifications from YouTube
    */
-  fastify.post('/websub/callback', async (
+  fastify.post('/websub/callback', {
+    config: {
+      rateLimit: { max: 300, timeWindow: '1 minute' },
+    },
+  }, async (
     request: FastifyRequest<{ Body: string }>,
     reply: FastifyReply
   ) => {
