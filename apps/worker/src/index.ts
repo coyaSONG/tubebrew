@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { Worker, Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { supabaseAdmin, DBUtils } from '@tubebrew/db';
@@ -182,6 +183,8 @@ async function scheduleVideoCollection() {
 // Start server
 const start = async () => {
   try {
+    await fastify.register(rateLimit, { global: false });
+
     // Register WebSub routes
     await fastify.register(websubRoutes);
 
